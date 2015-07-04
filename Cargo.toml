@@ -1,0 +1,9 @@
+[package]
+name = "liru"
+version = "0.1.0"
+authors = ["Jimmie Elvenmark <flugsio@gmail.com>"]
+
+[dependencies]
+uuid = "0.1"
+websocket = "~0.12.2"
+rustc-serialize = "0.3.15"
