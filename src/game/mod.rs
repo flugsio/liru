@@ -8,6 +8,13 @@ pub struct Pov {
     pub url: GameUrl,
     pub player: Option<Player>,
     pub opponent: Option<Opponent>,
+    pub tv: Option<Tv>,
+}
+
+#[derive(RustcDecodable)]
+pub struct Tv {
+    pub channel: String,
+    pub flip: bool,
 }
 
 #[derive(RustcDecodable)]

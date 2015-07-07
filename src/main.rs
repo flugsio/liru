@@ -2,11 +2,14 @@ extern crate uuid;
 extern crate hyper;
 extern crate rustc_serialize;
 extern crate websocket;
+extern crate rustbox;
+extern crate time;
 
 use std::thread;
 use std::sync::{Arc, Mutex};
 use std::io::stdin;
 use uuid::Uuid;
+use time::Duration;
 
 use std::process::Command;
 
@@ -19,6 +22,8 @@ use hyper::mime::{Mime, TopLevel, SubLevel};
 
 use rustc_serialize::json;
 use rustc_serialize::json::Json;
+
+use rustbox::Key;
 
 mod game;
 
@@ -39,14 +44,25 @@ fn main() {
         //std::thread::sleep_ms(3000);
         //println!("get next tv");
     //}
-    let pov = get_pov(base_url, "mtYp91YZ".to_string());
+    let pov = get_pov(base_url, "tv".to_string());
     match pov {
         Some(pov) => {
             let pov1 = Arc::new(Mutex::new(pov));
+            // TODO: clean this
+            let rustbox = tui::init();
             game::socket::connect(base_socket_url, sri, pov1.clone());
             loop {
-                std::thread::sleep_ms(4000);
-                tui::render_fen(pov1.clone());
+                tui::render_fen(&rustbox, pov1.clone());
+                match rustbox.peek_event(Duration::milliseconds(100), false) {
+                    Ok(rustbox::Event::KeyEvent(key)) => {
+                        match key {
+                            Some(Key::Char('q')) => { break; }
+                            _ => { }
+                        }
+                    },
+                    Err(e) => panic!("{}", e),
+                    _ => { }
+                }
             }
         },
         None => ()
@@ -55,26 +71,46 @@ fn main() {
 }
 
 mod tui {
-    extern crate term;
+    extern crate rustbox;
 
     use std::sync::{Arc, Mutex};
 
+    use std::default::Default;
+
+    use rustbox::{Color, RustBox};
+    use rustbox::Key;
+    use rustbox::{RB_BOLD, RB_NORMAL};
+
     use game;
 
-    pub fn render_fen(pov: Arc<Mutex<game::Pov>>) {
+    pub fn init() -> RustBox {
+        match RustBox::init(Default::default()) {
+            Result::Ok(v) => v,
+            Result::Err(e) => panic!("{}", e),
+        }
+    }
+
+    #[derive(Clone, Copy)]
+    struct RBStyle {
+        style: rustbox::Style,
+        fg: Color,
+        bg: Color,
+    }
+
+    pub fn render_fen(rb: &RustBox, pov: Arc<Mutex<game::Pov>>) {
         let pov = pov.lock().unwrap();
         let fen = pov.game.fen.clone();
-        let mut t = term::stdout().unwrap();
 
-        let border_color = term::color::CYAN;
-        let piece_dark = term::color::BRIGHT_BLUE;
-        let piece_light = term::color::YELLOW;
-        let space_dark = term::color::BRIGHT_BLUE;
-        let space_light = term::color::YELLOW;
+        let border = RBStyle { style: RB_NORMAL, fg: Color::Cyan, bg: Color::Black };
+        let piece_dark = RBStyle { style: RB_BOLD, fg: Color::Blue, bg: Color::Black };
+        let piece_light = RBStyle { style: RB_NORMAL, fg: Color::Yellow, bg: Color::Black };
+        let space_dark = RBStyle { style: RB_BOLD, fg: Color::Blue, bg: Color::Black };
+        let space_light = RBStyle { style: RB_NORMAL, fg: Color::Yellow, bg: Color::Black };
 
-        (write!(t, "\n")).unwrap();
-        t.fg(border_color).unwrap();
-        (write!(t, "  ╔═════════════════╗\n")).unwrap();
+        rb.print(3,  1, RB_BOLD, Color::White, Color::Black, &fen);
+        rb.print(5,  3, border.style, border.fg, border.bg, "╔═════════════════╗");
+        rb.print(5, 12, border.style, border.fg, border.bg, "╚═════════════════╝");
+
         // TODO: fen parser
         // r1bqkb1r/ppp1pppp/2n2n2/3p4/4P3/3P1P2/PPP3PP/RNBQKBNR w KQkq - 1 4
         for (y, row) in fen.split(' ').next().unwrap().split('/').enumerate() {
@@ -87,30 +123,26 @@ mod tui {
                 .replace("3", "···")
                 .replace("2", "··")
                 .replace("1", "·");
-            t.fg(border_color).unwrap();
-            (write!(t, "{} ║", 9-(y+1))).unwrap();
+            rb.print(3, 4 + y, border.style, border.fg, border.bg, &format!("{} ║", 9-(y+1)));
+            rb.print(23, 4 + y, border.style, border.fg, border.bg, "║");
             for (x, char) in row.chars().enumerate() {
-                if char == '·' {
+                let color = if char == '·' {
                     if (y + x) % 2 == 0 {
-                        t.fg(space_light).unwrap();
+                        space_light
                     } else {
-                        t.fg(space_dark).unwrap();
+                        space_dark
                     }
                 } else {
                     if char.is_uppercase() {
-                        t.fg(piece_light).unwrap();
+                        piece_light
                     } else {
-                        t.fg(piece_dark).unwrap();
+                        piece_dark
                     }
-                }
-                (write!(t, " {}", char.to_uppercase().collect::<String>())).unwrap();
+                };
+                rb.print(7 + x*2, 4 + y, color.style, color.fg, color.bg, &char.to_uppercase().collect::<String>());
             }
-            t.fg(border_color).unwrap();
-            (write!(t, " ║\n")).unwrap();
         }
-        (write!(t, "  ╚═════════════════╝\n")).unwrap();
-
-        assert!(t.reset().unwrap());
+        rb.present();
     }
 }
 
