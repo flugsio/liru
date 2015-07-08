@@ -111,6 +111,14 @@ mod tui {
         rb.print(5,  3, border.style, border.fg, border.bg, "╔═════════════════╗");
         rb.print(5, 12, border.style, border.fg, border.bg, "╚═════════════════╝");
 
+        // draw clocks
+        match pov.clock.as_ref() {
+            Some(clock) => {
+                self.rb.print(18,  2, RB_BOLD, if clock.black < 10f64 { Color::Red } else { Color::White }, Color::Black, &format!(" {:04.1}  ", clock.black));
+                self.rb.print(18,  13, RB_BOLD, if clock.white < 10f64 { Color::Red } else { Color::White }, Color::Black, &format!(" {:04.1}  ", clock.white));
+            },
+            None => ()
+        }
         // TODO: fen parser
         // r1bqkb1r/ppp1pppp/2n2n2/3p4/4P3/3P1P2/PPP3PP/RNBQKBNR w KQkq - 1 4
         for (y, row) in fen.split(' ').next().unwrap().split('/').enumerate() {

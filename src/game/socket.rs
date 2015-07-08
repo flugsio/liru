@@ -103,6 +103,16 @@ pub fn connect(base_url: String, sri: String, pov: Arc<Mutex<super::Pov>>) {
                     pov.game.fen = fen.to_string();
                     //cli::render_fen(fen);
                 },
+                Some(&Json::String(ref t)) if t == "clock" => {
+                    let d = obj.get("d").unwrap().as_object().unwrap();
+                    match pov.clock.as_mut() {
+                        Some(clock) => {
+                            clock.white = d.get("white").unwrap().as_f64().unwrap();
+                            clock.black = d.get("black").unwrap().as_f64().unwrap();
+                        },
+                        None => ()
+                    };
+                },
                 Some(&Json::String(ref t)) if t == "end" => {
                     let _ = tx_1.send(Message::Close(None));
                     // exit

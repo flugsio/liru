@@ -19,7 +19,8 @@ pub struct Tv {
 
 #[derive(RustcDecodable)]
 pub struct Clock {
-    todo: Option<String>,
+    pub white: f64,
+    pub black: f64,
 }
 
 #[derive(RustcDecodable)]
