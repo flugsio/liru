@@ -55,7 +55,7 @@ pub fn connect(base_url: String, sri: String, pov: Arc<Mutex<super::Pov>>) {
 
     let tx_1 = tx.clone();
 
-    let send_loop = thread::spawn(move || {
+    let _send_loop = thread::spawn(move || {
         loop {
             let message = match rx.recv() {
                 Ok(m) => m,
@@ -83,7 +83,7 @@ pub fn connect(base_url: String, sri: String, pov: Arc<Mutex<super::Pov>>) {
     });
 
     let pov_1 = pov.clone();
-    let receive_loop = thread::spawn(move || {
+    let _receive_loop = thread::spawn(move || {
 
         let handle = |obj: json::Object| {
             let mut pov = pov_1.lock().unwrap();
