@@ -23,8 +23,8 @@ pub fn connect(base_url: String, sri: String, pov: Arc<Mutex<super::Pov>>) {
     let mut url;
     {
         let pov = pov.lock().unwrap();
-        let version = match pov.player {
-            Some(ref player) => player.version,
+        let version = match pov.player.version {
+            Some(v) => v,
             None => 0
         };
         url = Url::parse(&format!("ws://{}{}?sri={}&version={}", base_url, pov.url.socket.clone(), sri, version)).unwrap();
@@ -89,10 +89,7 @@ pub fn connect(base_url: String, sri: String, pov: Arc<Mutex<super::Pov>>) {
             let mut pov = pov_1.lock().unwrap();
             match obj.get("v") {
                 Some(&Json::I64(v)) => {
-                    match pov.player.as_mut() {
-                        Some(player) => player.version = v,
-                        None => ()
-                    }
+                    pov.player.version = Some(v);
                 },
                 _ => ()
             }
@@ -179,11 +176,11 @@ pub fn connect(base_url: String, sri: String, pov: Arc<Mutex<super::Pov>>) {
             std::thread::sleep_ms(1000);
 
             let pov = pov.lock().unwrap();
-            match pov.player {
-                Some(ref player) => {
+            match pov.player.version {
+                Some(version) => {
                     let ping_packet = PingPacket {
                         t: "p".to_string(),
-                        v: player.version
+                        v: version
                     };
 
                     let message = Message::Text(json::encode(&ping_packet).unwrap());

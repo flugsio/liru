@@ -45,7 +45,7 @@ impl UI {
 
     pub fn start(&mut self) {
         while self.running {
-            self.render_fen();
+            self.render();
             self.poll_keys();
         }
     }
@@ -63,28 +63,54 @@ impl UI {
         }
     }
 
-    pub fn render_fen(&mut self) {
+    pub fn print(&self, x: usize, y: usize, rbstyle: RBStyle, chars: &str) {
+        self.rb.print(x, y, rbstyle.style, rbstyle.fg, rbstyle.bg, chars);
+    }
+
+    pub fn render(&mut self) {
         let pov = self.povs[0].lock().unwrap();
+        self.render_player(1, 2, &pov.opponent);
+        self.render_player(1, 14, &pov.player);
         let fen = pov.game.fen.clone();
-
-        let border = RBStyle { style: RB_NORMAL, fg: Color::Cyan, bg: Color::Black };
-        let piece_dark = RBStyle { style: RB_BOLD, fg: Color::Blue, bg: Color::Black };
-        let piece_light = RBStyle { style: RB_NORMAL, fg: Color::Yellow, bg: Color::Black };
-        let space_dark = RBStyle { style: RB_BOLD, fg: Color::Blue, bg: Color::Black };
-        let space_light = RBStyle { style: RB_NORMAL, fg: Color::Yellow, bg: Color::Black };
-
-        self.rb.print(3,  1, RB_BOLD, Color::White, Color::Black, &fen);
-        self.rb.print(5,  3, border.style, border.fg, border.bg, "╔═════════════════╗");
-        self.rb.print(5, 12, border.style, border.fg, border.bg, "╚═════════════════╝");
-
-        // draw clocks
-        match pov.clock.as_ref() {
-            Some(clock) => {
-                self.rb.print(18,  2, RB_BOLD, if clock.black < 10f64 { Color::Red } else { Color::White }, Color::Black, &format!(" {:04.1}  ", clock.black));
-                self.rb.print(18,  13, RB_BOLD, if clock.white < 10f64 { Color::Red } else { Color::White }, Color::Black, &format!(" {:04.1}  ", clock.white));
+        self.render_fen(fen);
+        match pov.clock {
+            Some(ref clock) => {
+                self.render_clock(19, 3, clock.black);
+                self.render_clock(19, 12, clock.white);
             },
             None => ()
-        }
+        };
+        self.rb.present();
+    }
+
+    pub fn render_player(&self, x: usize, y: usize, player: &game::Player) {
+        let style = RBStyle { style: RB_BOLD, fg: Color::White, bg: Color::Black };
+        self.print(x, y, style, &format!("{:4}", player.rating.unwrap_or(1500)));
+        match player.user {
+            Some(ref user) => {
+                self.print(x + 5, y, style, &format!("{}", user.username));
+            },
+            None => ()
+        };
+    }
+
+    pub fn render_clock(&self, x: usize, y: usize, time: f64) {
+        self.print(x, y, RBStyle { style: RB_BOLD, fg: if time < 10f64 { Color::Red } else { Color::White }, bg: Color::Black }, &format!("{:04.1}", time));
+    }
+
+    pub fn render_fen(&self, fen: String) {
+        let text_style  = RBStyle { style: RB_BOLD, fg: Color::White, bg:    Color::Black };
+        let border      = RBStyle { style: RB_NORMAL, fg: Color::Cyan, bg:   Color::Black };
+        let piece_dark  = RBStyle { style: RB_BOLD, fg: Color::Blue, bg:     Color::Black };
+        let piece_light = RBStyle { style: RB_NORMAL, fg: Color::Yellow, bg: Color::Black };
+        let space_dark  = RBStyle { style: RB_BOLD, fg: Color::Blue, bg:     Color::Black };
+        let space_light = RBStyle { style: RB_NORMAL, fg: Color::Yellow, bg: Color::Black };
+
+        self.print(3,  1, text_style, &fen);
+        self.print(5,  3, border, "╔═════════════════╗");
+        self.print(5, 12, border, "╚═════════════════╝");
+        self.print(7, 13, border,   "A B C D E F G H");
+
         // TODO: fen parser
         // r1bqkb1r/ppp1pppp/2n2n2/3p4/4P3/3P1P2/PPP3PP/RNBQKBNR w KQkq - 1 4
         for (y, row) in fen.split(' ').next().unwrap().split('/').enumerate() {
@@ -97,8 +123,8 @@ impl UI {
                 .replace("3", "···")
                 .replace("2", "··")
                 .replace("1", "·");
-            self.rb.print(3, 4 + y, border.style, border.fg, border.bg, &format!("{} ║", 9-(y+1)));
-            self.rb.print(23, 4 + y, border.style, border.fg, border.bg, "║");
+            self.print(3, 4 + y, border, &format!("{} ║", 9-(y+1)));
+            self.print(23, 4 + y, border, "║");
             for (x, char) in row.chars().enumerate() {
                 let color = if char == '·' {
                     if (y + x) % 2 == 0 {
@@ -113,9 +139,8 @@ impl UI {
                         piece_dark
                     }
                 };
-                self.rb.print(7 + x*2, 4 + y, color.style, color.fg, color.bg, &char.to_uppercase().collect::<String>());
+                self.print(7 + x*2, 4 + y, color, &char.to_uppercase().collect::<String>());
             }
         }
-        self.rb.present();
     }
 }

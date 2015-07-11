@@ -6,8 +6,8 @@ pub struct Pov {
     pub clock: Option<Clock>,
     pub correspondence: Option<CorrespondenceClock>,
     pub url: GameUrl,
-    pub player: Option<Player>,
-    pub opponent: Option<Opponent>,
+    pub player: Player,
+    pub opponent: Player,
     pub tv: Option<Tv>,
 }
 
@@ -51,8 +51,6 @@ pub struct Game {
     pub threefold: bool,
     pub source: String,
     pub status: Status,
-    pub white: Option<Player>,
-    pub black: Option<Player>,
 }
 
 #[derive(RustcDecodable)]
@@ -72,15 +70,10 @@ pub struct Status {
 #[derive(RustcDecodable)]
 pub struct Player {
     pub color: String,
-    pub version: i64,
-    pub spectator: bool,
+    pub version: Option<i64>,
+    pub spectator: Option<bool>,
     pub user: Option<User>,
-}
-
-#[derive(RustcDecodable)]
-pub struct Opponent {
-    pub color: String,
-    pub user: Option<User>,
+    pub rating: Option<i64>,
 }
 
 #[derive(RustcDecodable)]
