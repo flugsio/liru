@@ -26,33 +26,31 @@ fn main() {
     let lobby_url = "";
     let game_url = "";
 
-    let pov = get_pov(base_url, "tv".to_string());
+    let mut ui = ui::UI::new();
+    let pov = get_pov(base_url, "tv/bullet".to_string());
     match pov {
         Some(pov) => {
             let pov1 = Arc::new(Mutex::new(pov));
             game::socket::connect(base_socket_url, sri, pov1.clone());
-            let mut ui = ui::UI::new(pov1.clone());
-            ui.start();
+            ui.add_game(pov1.clone());
         },
         None => ()
     }
+    ui.start();
 
 }
 
 fn get_pov(base_url: String, game_id: String) -> Option<game::Pov> {
     let url = format!("http://{}/{}", base_url, game_id);
-    println!("connecting to {}", url);
     let client = Client::new();
-    let mut res = client.get(&*url)
+    let mut body = String::new();
+    client.get(&*url)
         .header(Connection::close())
         .header(Accept(vec![qitem(Mime(TopLevel::Application, SubLevel::Ext("vnd.lichess.v1+json".to_owned()), vec![]))]))
         .send()
-        .unwrap();
-    let mut body = String::new();
-    res.read_to_string(&mut body).unwrap();
-    println!("{}", body);
-    let decoded = json::decode(&body).unwrap();
-    println!("decoded successfully");
-    decoded
+        .map(|mut res| {
+            res.read_to_string(&mut body);
+        });
+    json::decode(&body).ok()
 }
 

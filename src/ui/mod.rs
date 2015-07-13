@@ -26,7 +26,7 @@ pub struct UI {
 }
 
 impl UI {
-    pub fn new(pov: Arc<Mutex<game::Pov>>) -> UI {
+    pub fn new() -> UI {
 
         let rb = match RustBox::init(Default::default()) {
             Result::Ok(v) => v,
@@ -34,13 +34,16 @@ impl UI {
         };
 
         let mut povs = Vec::new();
-        povs.push(pov);
 
         return UI {
             running: true,
             rb: rb,
             povs: povs,
         };
+    }
+
+    pub fn add_game(&mut self, pov: Arc<Mutex<game::Pov>>) {
+        self.povs.push(pov);
     }
 
     pub fn start(&mut self) {
@@ -68,19 +71,26 @@ impl UI {
     }
 
     pub fn render(&mut self) {
-        let pov = self.povs[0].lock().unwrap();
-        self.render_player(1, 2, &pov.opponent);
-        self.render_player(1, 14, &pov.player);
+        for (i, pov) in self.povs.iter().enumerate() {
+            pov.lock().map(|p| {
+                self.render_pov(i * 30, 0, &p);
+            });
+        }
+        self.rb.present();
+    }
+
+    pub fn render_pov(&self, x: usize, y: usize, pov: &game::Pov) {
+        self.render_player(x + 1, y + 2, &pov.opponent);
+        self.render_player(x + 1, y + 14, &pov.player);
         let fen = pov.game.fen.clone();
-        self.render_fen(fen);
+        self.render_fen(x, y, fen);
         match pov.clock {
             Some(ref clock) => {
-                self.render_clock(19, 3, clock.black);
-                self.render_clock(19, 12, clock.white);
+                self.render_clock(x + 19, y + 3, clock.black);
+                self.render_clock(x + 19, y + 12, clock.white);
             },
             None => ()
         };
-        self.rb.present();
     }
 
     pub fn render_player(&self, x: usize, y: usize, player: &game::Player) {
@@ -98,7 +108,7 @@ impl UI {
         self.print(x, y, RBStyle { style: RB_BOLD, fg: if time < 10f64 { Color::Red } else { Color::White }, bg: Color::Black }, &format!("{:04.1}", time));
     }
 
-    pub fn render_fen(&self, fen: String) {
+    pub fn render_fen(&self, x: usize, y: usize, fen: String) {
         let text_style  = RBStyle { style: RB_BOLD, fg: Color::White, bg:    Color::Black };
         let border      = RBStyle { style: RB_NORMAL, fg: Color::Cyan, bg:   Color::Black };
         let piece_dark  = RBStyle { style: RB_BOLD, fg: Color::Blue, bg:     Color::Black };
@@ -106,14 +116,14 @@ impl UI {
         let space_dark  = RBStyle { style: RB_BOLD, fg: Color::Blue, bg:     Color::Black };
         let space_light = RBStyle { style: RB_NORMAL, fg: Color::Yellow, bg: Color::Black };
 
-        self.print(3,  1, text_style, &fen);
-        self.print(5,  3, border, "╔═════════════════╗");
-        self.print(5, 12, border, "╚═════════════════╝");
-        self.print(7, 13, border,   "A B C D E F G H");
+        self.print(x + 3, y +  1, text_style, &fen);
+        self.print(x + 5, y +  3, border, "╔═════════════════╗");
+        self.print(x + 5, y + 12, border, "╚═════════════════╝");
+        self.print(x + 7, y + 13, border,   "A B C D E F G H");
 
         // TODO: fen parser
         // r1bqkb1r/ppp1pppp/2n2n2/3p4/4P3/3P1P2/PPP3PP/RNBQKBNR w KQkq - 1 4
-        for (y, row) in fen.split(' ').next().unwrap().split('/').enumerate() {
+        for (y2, row) in fen.split(' ').next().unwrap().split('/').enumerate() {
             let row = row
                 .replace("8", "········")
                 .replace("7", "·······")
@@ -123,11 +133,11 @@ impl UI {
                 .replace("3", "···")
                 .replace("2", "··")
                 .replace("1", "·");
-            self.print(3, 4 + y, border, &format!("{} ║", 9-(y+1)));
-            self.print(23, 4 + y, border, "║");
-            for (x, char) in row.chars().enumerate() {
+            self.print(x + 3, 4 + y + y2, border, &format!("{} ║", 9-(y2+1)));
+            self.print(x + 23, 4 + y + y2, border, "║");
+            for (x2, char) in row.chars().enumerate() {
                 let color = if char == '·' {
-                    if (y + x) % 2 == 0 {
+                    if (y2 + x2) % 2 == 0 {
                         space_light
                     } else {
                         space_dark
@@ -139,7 +149,7 @@ impl UI {
                         piece_dark
                     }
                 };
-                self.print(7 + x*2, 4 + y, color, &char.to_uppercase().collect::<String>());
+                self.print(7 + x + x2*2, 4 + y + y2, color, &char.to_uppercase().collect::<String>());
             }
         }
     }
