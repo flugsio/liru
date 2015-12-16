@@ -22,9 +22,8 @@ mod ui;
 
 fn main() {
     let sri = Uuid::new_v4().to_simple_string();
-    let base_url = "";
-    let lobby_url = "";
-    let game_url = "";
+    let base_url = "en.lichess.org".to_string();
+    let base_socket_url = "socket.en.lichess.org".to_string();
 
     let mut ui = ui::UI::new();
     let pov = get_pov(base_url, "tv/bullet".to_string());
@@ -34,7 +33,7 @@ fn main() {
             game::socket::connect(base_socket_url, sri, pov1.clone());
             ui.add_game(pov1.clone());
         },
-        None => ()
+        None => println!("no pov")
     }
     ui.start();
 
@@ -51,6 +50,7 @@ fn get_pov(base_url: String, game_id: String) -> Option<game::Pov> {
         .map(|mut res| {
             res.read_to_string(&mut body);
         });
-    json::decode(&body).ok()
+    // TODO: catch error and print
+    json::decode(&body).unwrap()
 }
 

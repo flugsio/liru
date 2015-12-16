@@ -43,7 +43,6 @@ pub struct Game {
     pub rated: bool,
     pub initialFen: String,
     pub fen: String,
-    pub moves: String,
     pub player: String,
     pub turns: i64,
     pub startedAtTurn: i64,

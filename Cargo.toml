@@ -5,8 +5,8 @@ authors = ["Jimmie Elvenmark <flugsio@gmail.com>"]
 
 [dependencies]
 uuid = "0.1"
-websocket = "~0.12.2"
-rustc-serialize = "0.3.15"
+websocket = "0.14.0"
+rustc-serialize = "0.3.16"
 rustbox = "*"
 time = "*"
-hyper = "0.6.1"
+hyper = "0.7.0"

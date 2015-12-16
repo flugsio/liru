@@ -6,6 +6,7 @@ use std::thread;
 use std::sync::mpsc::channel;
 
 use websocket::{Message, Sender, Receiver};
+use websocket::message::Type;
 use websocket::client::request::Url;
 
 use rustc_serialize::json;
@@ -57,25 +58,25 @@ pub fn connect(base_url: String, sri: String, pov: Arc<Mutex<super::Pov>>) {
 
     let _send_loop = thread::spawn(move || {
         loop {
-            let message = match rx.recv() {
+            let message: Message = match rx.recv() {
                 Ok(m) => m,
                 Err(e) => {
                     //println!("Send Loop: {:?}", e);
                     return;
                 }
             };
-            match message {
-                Message::Close(_) => {
-                    let _ = sender.send_message(message);
+            match message.opcode {
+                Type::Close => {
+                    let _ = sender.send_message(&message);
                     return;
                 }
                 _ => (),
             }
-            match sender.send_message(message) {
+            match sender.send_message(&message) {
                 Ok(()) => (),
                 Err(e) => {
                     //println!("Send Loop: {:?}", e);
-                    let _ = sender.send_message(Message::Close(None));
+                    let _ = sender.send_message(&Message::close());
                     return;
                 }
             }
@@ -111,7 +112,7 @@ pub fn connect(base_url: String, sri: String, pov: Arc<Mutex<super::Pov>>) {
                     };
                 },
                 Some(&Json::String(ref t)) if t == "end" => {
-                    let _ = tx_1.send(Message::Close(None));
+                    let _ = tx_1.send(Message::close());
                     // exit
                 },
                 //Some(&Json::String(ref t)) => println!("unhandled: {:?}", obj),
@@ -120,29 +121,29 @@ pub fn connect(base_url: String, sri: String, pov: Arc<Mutex<super::Pov>>) {
         };
 
         for message in receiver.incoming_messages() {
-            let message = match message {
+            let message: Message = match message {
                 Ok(m) => m,
                 Err(e) => {
                     //println!("Receive Loop: {:?}", e);
-                    let _ = tx_1.send(Message::Close(None));
+                    let _ = tx_1.send(Message::close());
                     return;
                 }
             };
-            match message {
-                Message::Close(_) => {
-                    let _ = tx_1.send(Message::Close(None));
+            match message.opcode {
+                Type::Close => {
+                    let _ = tx_1.send(Message::close());
                     return;
                 }
-                Message::Ping(data) => match tx_1.send(Message::Pong(data)) {
+                Type::Ping => match tx_1.send(Message::pong(message.payload)) {
                     Ok(()) => (),
                     Err(e) => {
                         //println!("Receive Loop: {:?}", e);
                         return;
                     }
                 },
-                Message::Text(data) => {
-                    //println!("Receive Loop: {:?}", data);
-                    let json = Json::from_str(&data).unwrap();
+                Type::Text => {
+                    //println!("Receive Loop: {:?}", payload);
+                    let json = Json::from_str(std::str::from_utf8(&message.payload.into_owned()).unwrap()).unwrap();
                     if json.is_object() {
                         let obj = json.as_object().unwrap();
                         let t = obj.get("t");
@@ -183,7 +184,7 @@ pub fn connect(base_url: String, sri: String, pov: Arc<Mutex<super::Pov>>) {
                         v: version
                     };
 
-                    let message = Message::Text(json::encode(&ping_packet).unwrap());
+                    let message = Message::text(json::encode(&ping_packet).unwrap());
 
                     match tx_2.send(message) {
                         Ok(()) => (),
@@ -207,7 +208,7 @@ pub fn connect(base_url: String, sri: String, pov: Arc<Mutex<super::Pov>>) {
 
         let message = match trimmed {
             "/close" => {
-                let _ = tx.send(Message::Close(None));
+                let _ = tx.send(Message::close(None));
                 break;
             }
             "/ping" => Message::Ping(b"{t: 'p', v: 300}".to_vec()),
