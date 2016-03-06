@@ -32,7 +32,7 @@ pub fn connect(base_url: String, sri: String, pov: Arc<Mutex<super::Pov>>) {
     }
     let version = Arc::new(Mutex::new(0));
 
-    println!("Connecting to {}", url);
+    //println!("Connecting to {}", url);
 
     // TODO: this unwrap fails when url is wrong, port for example
     let request = websocket::Client::connect(url).unwrap();
@@ -48,7 +48,7 @@ pub fn connect(base_url: String, sri: String, pov: Arc<Mutex<super::Pov>>) {
         }
     };
 
-    println!("Successfully connected");
+    //println!("Successfully connected");
 
     let (mut sender, mut receiver) = response.begin().split();
 
