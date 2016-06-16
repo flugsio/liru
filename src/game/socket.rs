@@ -9,8 +9,19 @@ use websocket::{Message, Sender, Receiver};
 use websocket::message::Type;
 use websocket::client::request::Url;
 
+use hyper::header::{Cookie, CookieJar};
+
 use rustc_serialize::json;
 use rustc_serialize::json::Json;
+
+use time;
+
+// making a move
+// out {"t":"move","d":{"from":"e2","to":"e4","b":1}}
+// in {t: "ack"}
+// in {"v":1,"t":"move","d":{"uci":"e2e4","san":"e4","fen":"rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR","ply":1,"clock":{"white":172800,"black":172800},"dests":{"b8":"a6c6","g8":"f6h6","h7":"h6h5","d7":"d6d5","g7":"g6g5","c7":"c6c5","f7":"f6f5","b7":"b6b5","e7":"e6e5","a7":"a6a5"},"crazyhouse":{"pockets":[{},{}]}}}
+// other player moved
+// in {"v":2,"t":"move","d":{"uci":"g7g5","san":"g5","fen":"rnbqkbnr/pppppp1p/8/6p1/4P3/8/PPPP1PPP/RNBQKBNR","ply":2,"clock":{"white":172800,"black":172800},"dests":{"a2":"a3a4","g1":"f3h3e2","d1":"e2f3g4h5","e1":"e2","d2":"d3d4","b1":"a3c3","e4":"e5","f1":"e2d3c4b5a6","h2":"h3h4","b2":"b3b4","f2":"f3f4","c2":"c3c4","g2":"g3g4"},"crazyhouse":{"pockets":[{},{}]}}}
 
 
 #[derive(RustcEncodable)]
@@ -19,7 +30,20 @@ pub struct PingPacket {
     v: i64
 }
 
-pub fn connect(base_url: String, sri: String, pov: Arc<Mutex<super::Pov>>) {
+#[derive(RustcEncodable)]
+pub struct MovePacket {
+    t: String, // this should be hardcoded
+    d: Dest,
+}
+
+#[derive(RustcEncodable)]
+pub struct Dest {
+    pub from: String,
+    pub to: String,
+    // pub: i8, // bool, but 0 or 1
+}
+
+pub fn connect(jar: &CookieJar<'static>, base_url: String, sri: String, pov: Arc<Mutex<super::Pov>>) {
 
     let mut url;
     {
@@ -35,7 +59,8 @@ pub fn connect(base_url: String, sri: String, pov: Arc<Mutex<super::Pov>>) {
     //println!("Connecting to {}", url);
 
     // TODO: this unwrap fails when url is wrong, port for example
-    let request = websocket::Client::connect(url).unwrap();
+    let mut request = websocket::Client::connect(url).unwrap();
+    request.headers.set(Cookie::from_cookie_jar(&jar));
 
     let response = request.send().unwrap();
 
@@ -89,8 +114,8 @@ pub fn connect(base_url: String, sri: String, pov: Arc<Mutex<super::Pov>>) {
         let handle = |obj: json::Object| {
             let mut pov = pov_1.lock().unwrap();
             match obj.get("v") {
-                Some(&Json::I64(v)) => {
-                    pov.player.version = Some(v);
+                Some(&Json::U64(v)) => {
+                    pov.player.version = Some(v as i64);
                 },
                 _ => ()
             }

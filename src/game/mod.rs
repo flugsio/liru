@@ -34,6 +34,7 @@ pub struct GameUrl {
     pub round: String,
 }
 
+#[allow(non_snake_case)]
 #[derive(RustcDecodable)]
 pub struct Game {
     pub id: String,

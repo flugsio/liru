@@ -11,6 +11,7 @@ use rustbox::{RB_BOLD, RB_NORMAL};
 use time::Duration;
 
 use game;
+use lila;
 
 #[derive(Clone, Copy)]
 struct RBStyle {
@@ -53,6 +54,7 @@ pub struct UI {
     renderer: Renderer,
     views: Vec<Box<View>>,
     current_view: usize,
+    session: lila::Session,
 }
 
 struct Renderer {
@@ -60,7 +62,7 @@ struct Renderer {
 }
 
 impl UI {
-    pub fn new() -> UI {
+    pub fn new(session: lila::Session) -> UI {
 
         let rb = match RustBox::init(Default::default()) {
             Result::Ok(v) => v,
@@ -83,6 +85,10 @@ impl UI {
         menuOptions.push(MenuOption::WatchTv { name: "Racing Kings".to_string(), url: "tv/racingKings".to_string() });
         menuOptions.push(MenuOption::WatchTv { name: "Computer".to_string(), url: "tv/computer".to_string() });
 
+        for game in &session.user.nowPlaying {
+            menuOptions.push(MenuOption::WatchTv { name: game.gameId.clone(), url: game.fullId.clone() });
+        }
+
         views.push(Box::new(MenuView {
             menuOptions: menuOptions,
             current: 0,
@@ -93,6 +99,7 @@ impl UI {
             renderer: Renderer { rb: rb },
             views: views,
             current_view: 0,
+            session: session,
         };
     }
 
@@ -101,7 +108,8 @@ impl UI {
     }
 
     pub fn add_game(&mut self, name: String, url: String) {
-        self.add_view(Box::new(GameView::new(name, url)) as Box<View>);
+        let game = GameView::new(&self.session.cjar, name, url);
+        self.add_view(Box::new(game) as Box<View>);
     }
 
     pub fn start(&mut self) {
@@ -259,21 +267,22 @@ use std::io::Read;
 use hyper::Client;
 use hyper::header::Connection;
 
-use hyper::header::{Headers, Accept, qitem};
+use hyper::header::{Headers, Cookie, CookieJar, Accept, qitem};
 use hyper::mime::{Mime, TopLevel, SubLevel};
 
 use rustc_serialize::json;
 
 impl GameView {
-    pub fn new(name: String, url: String) -> GameView {
+    pub fn new(jar: &CookieJar<'static>, name: String, url: String) -> GameView {
         // TODO: move this
-        fn get_pov(base_url: String, game_id: String) -> Option<game::Pov> {
-            let url = format!("http://{}/{}", base_url, game_id);
+        fn get_pov(jar: &CookieJar<'static>, base_url: String, game_id: String) -> Option<game::Pov> {
+            let url = format!("https://{}/{}", base_url, game_id);
             let client = Client::new();
             let mut body = String::new();
             client.get(&*url)
                 .header(Connection::close())
                 .header(Accept(vec![qitem(Mime(TopLevel::Application, SubLevel::Ext("vnd.lichess.v1+json".to_owned()), vec![]))]))
+                .header(Cookie::from_cookie_jar(&jar))
                 .send()
                 .map(|mut res| {
                     res.read_to_string(&mut body);
@@ -285,15 +294,15 @@ impl GameView {
         // TODO: should this be reused or new for each socket?
         let sri = Uuid::new_v4().to_simple_string();
         let base_url = "en.lichess.org".to_string();
-        let base_socket_url = "socket.en.lichess.org".to_string();
+        let base_socket_url = "socket.lichess.org".to_string();
 
         let mut povs = Vec::new();
 
-        let pov = get_pov(base_url, url.clone());
+        let pov = get_pov(jar, base_url, url.clone());
         match pov {
             Some(pov) => {
                 let pov1 = Arc::new(Mutex::new(pov));
-                game::socket::connect(base_socket_url, sri, pov1.clone());
+                game::socket::connect(jar, base_socket_url, sri, pov1.clone());
                 povs.push(pov1);
             },
             None => println!("no pov")
