@@ -128,7 +128,7 @@ pub fn sign_in(username: String, password: String) -> Result<Session, &'static s
             }
         };
         res.read_to_string(&mut body);
-        //println!("{}", &body);
+        trace!("{}", &body);
         let mut cjar = CookieJar::new(b"a234lj5sdfla234sjdfasldkfjlasdf");
         cookie.apply_to_cookie_jar(&mut cjar);
         Ok(Session {
@@ -137,7 +137,7 @@ pub fn sign_in(username: String, password: String) -> Result<Session, &'static s
         })
         //} else if res.status.is_client_error() {
     } else {
-        println!("Could not login: {}", res.status);
+        error!("Could not login: {}", res.status);
         Err("Could not login")
     }
 }

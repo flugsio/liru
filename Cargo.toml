@@ -4,6 +4,8 @@ version = "0.1.1"
 authors = ["Jimmie Elvenmark <flugsio@gmail.com>"]
 
 [dependencies]
+log = "0.3.4"
+fern = "0.3.5"
 uuid = "0.1"
 websocket = "0.15.0"
 rustc-serialize = "0.3.16"

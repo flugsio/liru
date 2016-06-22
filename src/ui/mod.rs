@@ -305,7 +305,7 @@ impl GameView {
                 game::socket::connect(jar, base_socket_url, sri, pov1.clone());
                 povs.push(pov1);
             },
-            None => println!("no pov")
+            None => warn!("no pov")
         }
 
         return GameView {

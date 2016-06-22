@@ -67,8 +67,8 @@ pub fn connect(jar: &CookieJar<'static>, base_url: String, sri: String, pov: Arc
     match response.validate() {
         Ok(()) => (),
         Err(e) => {
-            println!("reponse validation error: {:?}", e);
-            println!("reponse status: {:?}, headers: {:?}", response.status, response.headers);
+            error!("reponse validation error: {:?}", e);
+            debug!("reponse status: {:?}, headers: {:?}", response.status, response.headers);
             return;
         }
     };
@@ -149,7 +149,7 @@ pub fn connect(jar: &CookieJar<'static>, base_url: String, sri: String, pov: Arc
             let message: Message = match message {
                 Ok(m) => m,
                 Err(e) => {
-                    //println!("Receive Loop: {:?}", e);
+                    //trace!("Receive Loop: {:?}", e);
                     let _ = tx_1.send(Message::close());
                     return;
                 }
