@@ -1,5 +1,7 @@
 pub mod socket;
 
+use rustc_serialize::json;
+
 use lila;
 
 #[derive(RustcDecodable)]
@@ -27,7 +29,7 @@ pub struct Clock {
 
 #[derive(RustcDecodable)]
 pub struct CorrespondenceClock {
-    todo: Option<String>,
+    _todo: Option<String>,
 }
 
 #[derive(RustcDecodable)]
@@ -83,15 +85,6 @@ pub struct User {
     pub id: String,
     pub username: String,
 }
-
-use hyper::Client;
-use hyper::header::Connection;
-
-use hyper::header::{Headers, Cookie, CookieJar, Accept, qitem};
-use hyper::mime::{Mime, TopLevel, SubLevel};
-
-use std::io::Read;
-use rustc_serialize::json;
 
 impl Pov {
     pub fn new(session: &lila::Session, base_url: String, game_id: String) -> Option<Pov> {

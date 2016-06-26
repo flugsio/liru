@@ -4,17 +4,17 @@ use std;
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc;
 use std::thread;
+use std::time::Duration;
 
 use websocket::{Message, Sender, Receiver};
 use websocket::message::Type;
 use websocket::client::request::Url;
 
-use hyper::header::{Cookie, CookieJar};
+use hyper::header::{Cookie};
 
 use rustc_serialize::json;
 use rustc_serialize::json::Json;
 
-use time;
 use lila;
 
 // making a move
@@ -44,12 +44,14 @@ impl PingPacket {
     }
 }
 
+#[allow(dead_code)]
 #[derive(RustcEncodable)]
 pub struct MovePacket {
-    t: String, // this should be hardcoded
+    t: String,
     d: Dest,
 }
 
+#[allow(dead_code)]
 #[derive(RustcEncodable)]
 pub struct Dest {
     pub from: String,
@@ -59,7 +61,7 @@ pub struct Dest {
 
 pub fn connect(session: &lila::Session, base_url: String, sri: String, pov: Arc<Mutex<super::Pov>>) {
 
-    let mut url;
+    let url;
     {
         let pov = pov.lock().unwrap();
         let version = match pov.player.version {
@@ -68,7 +70,6 @@ pub fn connect(session: &lila::Session, base_url: String, sri: String, pov: Arc<
         };
         url = Url::parse(&format!("ws://{}{}?sri={}&version={}", base_url, pov.url.socket.clone(), sri, version)).unwrap();
     }
-    let version = Arc::new(Mutex::new(0));
 
     // TODO: this unwrap fails when url is wrong, port for example
     let mut request = websocket::Client::connect(url).unwrap();
@@ -98,7 +99,7 @@ pub fn connect(session: &lila::Session, base_url: String, sri: String, pov: Arc<
             let message: Message = match rx.recv() {
                 Ok(m) => m,
                 Err(e) => {
-                    //println!("Send Loop: {:?}", e);
+                    error!("Send loop, could not read next message: {:?}", e);
                     return;
                 }
             };
@@ -115,7 +116,7 @@ pub fn connect(session: &lila::Session, base_url: String, sri: String, pov: Arc<
             match sender.send_message(&message) {
                 Ok(()) => (),
                 Err(e) => {
-                    //println!("Send Loop: {:?}", e);
+                    error!("Send loop: could not send message: {:?}", e);
                     let _ = sender.send_message(&Message::close());
                     return;
                 }
@@ -213,7 +214,7 @@ pub fn connect(session: &lila::Session, base_url: String, sri: String, pov: Arc<
     let tx_2 = tx.clone();
 
     thread::spawn(move || loop {
-        std::thread::sleep_ms(1000);
+        thread::sleep(Duration::from_millis(1000));
 
         pov.lock().ok()
             .and_then(|p| p.player.version )

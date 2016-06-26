@@ -14,7 +14,7 @@ mod ui;
 mod lila;
 
 fn main() {
-    //let session = lila::Session::sign_in("username".to_owned(), "passwordlol".to_owned()).unwrap();
+    let _session = lila::Session::sign_in("username".to_owned(), "passwordlol".to_owned()).unwrap();
     setup_logger(true);
     debug!("Init");
     let session = lila::Session::anonymous();

@@ -32,12 +32,13 @@ enum MenuResult {
 }
 
 struct MenuView {
-    menuOptions: Vec<MenuOption>,
+    menu_options: Vec<MenuOption>,
     current: usize,
 }
 
 struct GameView {
     name: String,
+    #[allow(dead_code)]
     url: String,
     povs: Vec<Arc<Mutex<game::Pov>>>,
 }
@@ -70,27 +71,27 @@ impl UI {
         };
 
         let mut views = Vec::new();
-        let mut menuOptions = Vec::new();
-        menuOptions.push(MenuOption::WatchTv { name: "Best".to_string(), url: "tv/best".to_string() });
-        menuOptions.push(MenuOption::WatchTv { name: "Bullet".to_string(), url: "tv/bullet".to_string() });
-        menuOptions.push(MenuOption::WatchTv { name: "Blitz".to_string(), url: "tv/blitz".to_string() });
-        menuOptions.push(MenuOption::WatchTv { name: "Classical".to_string(), url: "tv/classical".to_string() });
-        menuOptions.push(MenuOption::WatchTv { name: "Crazyhouse".to_string(), url: "tv/crazyhouse".to_string() });
-        menuOptions.push(MenuOption::WatchTv { name: "Chess 960".to_string(), url: "tv/chess960".to_string() });
-        menuOptions.push(MenuOption::WatchTv { name: "King of the Hill".to_string(), url: "tv/kingOfTheHill".to_string() });
-        menuOptions.push(MenuOption::WatchTv { name: "Three-Check".to_string(), url: "tv/threeCheck".to_string() });
-        menuOptions.push(MenuOption::WatchTv { name: "Antichess".to_string(), url: "tv/antichess".to_string() });
-        menuOptions.push(MenuOption::WatchTv { name: "Atomic".to_string(), url: "tv/atomic".to_string() });
-        menuOptions.push(MenuOption::WatchTv { name: "Horde".to_string(), url: "tv/horde".to_string() });
-        menuOptions.push(MenuOption::WatchTv { name: "Racing Kings".to_string(), url: "tv/racingKings".to_string() });
-        menuOptions.push(MenuOption::WatchTv { name: "Computer".to_string(), url: "tv/computer".to_string() });
+        let mut menu_options = Vec::new();
+        menu_options.push(MenuOption::WatchTv { name: "Best".to_string(), url: "tv/best".to_string() });
+        menu_options.push(MenuOption::WatchTv { name: "Bullet".to_string(), url: "tv/bullet".to_string() });
+        menu_options.push(MenuOption::WatchTv { name: "Blitz".to_string(), url: "tv/blitz".to_string() });
+        menu_options.push(MenuOption::WatchTv { name: "Classical".to_string(), url: "tv/classical".to_string() });
+        menu_options.push(MenuOption::WatchTv { name: "Crazyhouse".to_string(), url: "tv/crazyhouse".to_string() });
+        menu_options.push(MenuOption::WatchTv { name: "Chess 960".to_string(), url: "tv/chess960".to_string() });
+        menu_options.push(MenuOption::WatchTv { name: "King of the Hill".to_string(), url: "tv/kingOfTheHill".to_string() });
+        menu_options.push(MenuOption::WatchTv { name: "Three-Check".to_string(), url: "tv/threeCheck".to_string() });
+        menu_options.push(MenuOption::WatchTv { name: "Antichess".to_string(), url: "tv/antichess".to_string() });
+        menu_options.push(MenuOption::WatchTv { name: "Atomic".to_string(), url: "tv/atomic".to_string() });
+        menu_options.push(MenuOption::WatchTv { name: "Horde".to_string(), url: "tv/horde".to_string() });
+        menu_options.push(MenuOption::WatchTv { name: "Racing Kings".to_string(), url: "tv/racingKings".to_string() });
+        menu_options.push(MenuOption::WatchTv { name: "Computer".to_string(), url: "tv/computer".to_string() });
 
         for game in &session.user.nowPlaying {
-            menuOptions.push(MenuOption::WatchTv { name: game.gameId.clone(), url: game.fullId.clone() });
+            menu_options.push(MenuOption::WatchTv { name: game.gameId.clone(), url: game.fullId.clone() });
         }
 
         views.push(Box::new(MenuView {
-            menuOptions: menuOptions,
+            menu_options: menu_options,
             current: 0,
         }) as Box<View>);
 
@@ -103,11 +104,11 @@ impl UI {
         };
     }
 
-    pub fn add_view(&mut self, view: Box<View>) {
+    fn add_view(&mut self, view: Box<View>) {
         self.views.push(view);
     }
 
-    pub fn add_game(&mut self, name: String, url: String) {
+    fn add_game(&mut self, name: String, url: String) {
         let game = GameView::new(&self.session, name, url);
         self.add_view(Box::new(game) as Box<View>);
     }
@@ -201,7 +202,7 @@ impl View for MenuView {
         let dark  = RBStyle { style: RB_BOLD, fg: Color::Blue, bg:     Color::Black };
         let light = RBStyle { style: RB_NORMAL, fg: Color::Yellow, bg: Color::Black };
 
-        for (i, option) in self.menuOptions.iter().enumerate() {
+        for (i, option) in self.menu_options.iter().enumerate() {
             if i == self.current {
                 r.print(0, 2 + i, light, option.name());
             } else {
@@ -223,13 +224,13 @@ impl View for MenuView {
                 MenuResult::None
             },
             Key::Down => {
-                if self.current < self.menuOptions.len() -1 {
+                if self.current < self.menu_options.len() -1 {
                     self.current += 1;
                 }
                 MenuResult::None
             },
             Key::Enter => {
-                let option = self.menuOptions.get(self.current).unwrap(); // TODO
+                let option = self.menu_options.get(self.current).unwrap(); // TODO
                 option.execute()
             }
             _ => { MenuResult::None }
@@ -240,9 +241,7 @@ impl View for MenuView {
 impl View for GameView {
     fn render(&self, r: &mut Renderer) {
         for (i, pov) in self.povs.iter().enumerate() {
-            pov.lock().map(|p| {
-                self.render_pov(r, i * 30, 0, &p);
-            });
+            pov.lock().ok().map(|p| self.render_pov(r, i * 30, 0, &p));
         }
     }
 
@@ -250,7 +249,7 @@ impl View for GameView {
         &self.name
     }
 
-    fn key_event(&mut self, key: rustbox::keyboard::Key) -> MenuResult {
+    fn key_event(&mut self, _key: rustbox::keyboard::Key) -> MenuResult {
         MenuResult::None
     }
 }
@@ -259,7 +258,6 @@ impl MenuView {
 }
 
 use uuid::Uuid;
-use hyper::header::{CookieJar};
 
 impl GameView {
     pub fn new(session: &lila::Session, name: String, url: String) -> GameView {
@@ -318,7 +316,7 @@ impl GameView {
     }
 
     pub fn render_fen(&self, r: &mut Renderer, x: usize, y: usize, fen: String) {
-        let text_style  = RBStyle { style: RB_BOLD, fg: Color::White, bg:    Color::Black };
+        let _text_style  = RBStyle { style: RB_BOLD, fg: Color::White, bg:    Color::Black };
         let border      = RBStyle { style: RB_NORMAL, fg: Color::Cyan, bg:   Color::Black };
         let piece_dark  = RBStyle { style: RB_BOLD, fg: Color::Blue, bg:     Color::Black };
         let piece_light = RBStyle { style: RB_NORMAL, fg: Color::Yellow, bg: Color::Black };
@@ -367,13 +365,13 @@ impl GameView {
 impl MenuOption {
     pub fn name(&self) -> &str {
         match self {
-            &MenuOption::WatchTv {ref name, ref url} => { // TODO remove url
+            &MenuOption::WatchTv {ref name, ..} => { // TODO remove url
                name
             },
         }
     }
 
-    pub fn execute(&self) -> MenuResult {
+    fn execute(&self) -> MenuResult {
         match self {
             &MenuOption::WatchTv {ref name, ref url} => {
                 MenuResult::AddGameView { name: name.clone(), url: url.clone() }

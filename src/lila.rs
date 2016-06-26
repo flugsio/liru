@@ -79,7 +79,7 @@ pub struct PlayingGame {
 
 impl Session {
     pub fn anonymous() -> Session {
-        let mut cjar = CookieJar::new(b"a234lj5sdfla234sjdfasldkfjlasdf");
+        let cjar = CookieJar::new(b"a234lj5sdfla234sjdfasldkfjlasdf");
         Session {
             user: LilaUser {
                 id: "anonymous".to_owned(),
@@ -129,7 +129,7 @@ impl Session {
                     panic!("Cookies: session cookie expected!");
                 }
             };
-            res.read_to_string(&mut body);
+            res.read_to_string(&mut body).ok();
             trace!("{}", &body);
             let mut cjar = CookieJar::new(b"a234lj5sdfla234sjdfasldkfjlasdf");
             cookie.apply_to_cookie_jar(&mut cjar);
@@ -152,8 +152,6 @@ impl Session {
             .header(Accept(vec![qitem(Mime(TopLevel::Application, SubLevel::Ext("vnd.lichess.v1+json".to_owned()), vec![]))]))
             .header(Cookie::from_cookie_jar(&self.cjar))
             .send()
-            .map(|mut res| {
-                res.read_to_string(&mut body);
-            });
+            .map(|mut res| res.read_to_string(&mut body).ok()).unwrap();
     }
 }
