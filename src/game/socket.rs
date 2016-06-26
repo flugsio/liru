@@ -2,8 +2,8 @@ extern crate websocket;
 
 use std;
 use std::sync::{Arc, Mutex};
+use std::sync::mpsc;
 use std::thread;
-use std::sync::mpsc::channel;
 
 use websocket::{Message, Sender, Receiver};
 use websocket::message::Type;
@@ -25,9 +25,22 @@ use time;
 
 
 #[derive(RustcEncodable)]
-pub struct PingPacket {
+struct PingPacket {
     t: String,
     v: i64
+}
+
+impl PingPacket {
+    pub fn new(version: i64) -> PingPacket {
+        PingPacket {
+            t: "p".to_string(),
+            v: version
+        }
+    }
+    
+    pub fn to_message(&self) -> Message<'static> {
+        Message::text(json::encode(self).unwrap())
+    }
 }
 
 #[derive(RustcEncodable)]
@@ -56,8 +69,6 @@ pub fn connect(jar: &CookieJar<'static>, base_url: String, sri: String, pov: Arc
     }
     let version = Arc::new(Mutex::new(0));
 
-    //println!("Connecting to {}", url);
-
     // TODO: this unwrap fails when url is wrong, port for example
     let mut request = websocket::Client::connect(url).unwrap();
     request.headers.set(Cookie::from_cookie_jar(&jar));
@@ -77,7 +88,7 @@ pub fn connect(jar: &CookieJar<'static>, base_url: String, sri: String, pov: Arc
 
     let (mut sender, mut receiver) = response.begin().split();
 
-    let (tx, rx) = channel();
+    let (tx, rx) = mpsc::channel();
 
     let tx_1 = tx.clone();
 
@@ -90,6 +101,9 @@ pub fn connect(jar: &CookieJar<'static>, base_url: String, sri: String, pov: Arc
                     return;
                 }
             };
+            trace!("Transmit raw: {:?}", message);
+            debug!("Transmit msg: {}",
+                   &std::str::from_utf8(&message.payload).unwrap());
             match message.opcode {
                 Type::Close => {
                     let _ = sender.send_message(&message);
@@ -149,7 +163,7 @@ pub fn connect(jar: &CookieJar<'static>, base_url: String, sri: String, pov: Arc
             let message: Message = match message {
                 Ok(m) => m,
                 Err(e) => {
-                    //trace!("Receive Loop: {:?}", e);
+                    warn!("Receive loop error: {:?}", e);
                     let _ = tx_1.send(Message::close());
                     return;
                 }
@@ -162,18 +176,19 @@ pub fn connect(jar: &CookieJar<'static>, base_url: String, sri: String, pov: Arc
                 Type::Ping => match tx_1.send(Message::pong(message.payload)) {
                     Ok(()) => (),
                     Err(e) => {
-                        //println!("Receive Loop: {:?}", e);
+                        warn!("Could not send pong: {:?}", e);
                         return;
                     }
                 },
                 Type::Text => {
-                    //println!("Receive Loop: {:?}", payload);
-                    let json = Json::from_str(std::str::from_utf8(&message.payload.into_owned()).unwrap()).unwrap();
+                    let str_payload = std::str::from_utf8(&message.payload).unwrap();
+                    trace!("Received raw: {:?}", &message.payload);
+                    trace!("Received str: {}", str_payload);
+                    let json = Json::from_str(str_payload).unwrap();
+                    debug!("Received obj: {:?}", json);
                     if json.is_object() {
                         let obj = json.as_object().unwrap();
                         let t = obj.get("t");
-                        //println!("  type: {:?}", t);
-                        //println!("full: {:?}", obj);
                         match t {
                             Some(&Json::String(ref t)) if t == "n" => { // pong
                             },
@@ -189,65 +204,21 @@ pub fn connect(jar: &CookieJar<'static>, base_url: String, sri: String, pov: Arc
                         }
                     }
                 }
-                _ => ()//println!("Receive Loop: {:?}", message),
+                _ => debug!("Unhandled message: {:?}", message),
             }
         }
     });
 
     let tx_2 = tx.clone();
 
-    // ping loop
-    thread::spawn(move || {
-        loop {
-            std::thread::sleep_ms(1000);
+    thread::spawn(move || loop {
+        std::thread::sleep_ms(1000);
 
-            let pov = pov.lock().unwrap();
-            match pov.player.version {
-                Some(version) => {
-                    let ping_packet = PingPacket {
-                        t: "p".to_string(),
-                        v: version
-                    };
-
-                    let message = Message::text(json::encode(&ping_packet).unwrap());
-
-                    match tx_2.send(message) {
-                        Ok(()) => (),
-                        Err(e) => {
-                            //println!("Main Loop: {:?}", e);
-                        }
-                    }
-                },
-                None => () // TODO: error
-            };
-        }
+        pov.lock().ok()
+            .and_then(|p| p.player.version )
+            .map(|v| PingPacket::new(v).to_message())
+            .map(|p| tx_2.send(p).unwrap());
     });
-
-
-    /*loop {
-        let mut input = String::new();
-
-        stdin().read_line(&mut input).unwrap();
-
-        let trimmed = input.trim();
-
-        let message = match trimmed {
-            "/close" => {
-                let _ = tx.send(Message::close(None));
-                break;
-            }
-            "/ping" => Message::Ping(b"{t: 'p', v: 300}".to_vec()),
-            _ => Message::Text(trimmed.to_string()),
-        };
-
-        match tx.send(message) {
-            Ok(()) => (),
-            Err(e) => {
-                //println!("Main Loop: {:?}", e);
-                break;
-            }
-        }
-    }*/
 
     //let _ = send_loop.join();
     //let _ = receive_loop.join();
