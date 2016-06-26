@@ -6,6 +6,7 @@ use hyper::header::{
     Accept,
     Connection,
     ContentType,
+    Cookie,
     CookieJar,
     SetCookie,
     UserAgent,
@@ -76,69 +77,83 @@ pub struct PlayingGame {
     //secondsLeft: 120613
 }
 
-pub fn anonymous() -> Session {
-    let mut cjar = CookieJar::new(b"a234lj5sdfla234sjdfasldkfjlasdf");
-    Session {
-        user: LilaUser {
-            id: "anonymous".to_owned(),
-            username: "Anonymous".to_owned(),
-            online: true,
-            engine: false,
-            booster: false,
-            perfs: HashMap::new(),
-            createdAt: 0,
-            seenAt: 0,
-            playTime: PlayTime {
-                total: 0,
-                tv: 0,
-            },
-            nowPlaying: vec!(),
-        },
-        cjar: cjar,
-    }
-}
-
-pub fn sign_in(username: String, password: String) -> Result<Session, &'static str> {
-    let base_url = "en.lichess.org".to_string();
-    let url = format!("https://{}/login", base_url);
-    let client = Client::new();
-    let mut data = String::new();
-    let mut body = String::new();
-    form_urlencoded::Serializer::new(&mut data)
-        .append_pair("username", &username)
-        .append_pair("password", &password);
-    let mut res = client.post(&*url)
-        .body(&data)
-        .header(Connection::close())
-        .header(Accept(vec![qitem(Mime(
-                        TopLevel::Application,
-                        SubLevel::Ext("vnd.lichess.v1+json".to_owned()),
-                        vec![]))]))
-        .header(UserAgent("liru/0.1.1".to_owned()))
-        .header(ContentType::form_url_encoded())
-        .send()
-        .unwrap();
-    if res.status.is_success() {
-        let cookie = match res.headers.get::<SetCookie>() {
-            Some(cookie) => {
-                cookie.to_owned()
-            },
-            None => {
-                panic!("Cookies: session cookie expected!");
-            }
-        };
-        res.read_to_string(&mut body);
-        trace!("{}", &body);
+impl Session {
+    pub fn anonymous() -> Session {
         let mut cjar = CookieJar::new(b"a234lj5sdfla234sjdfasldkfjlasdf");
-        cookie.apply_to_cookie_jar(&mut cjar);
-        Ok(Session {
-            user: json::decode(&body).unwrap(),
+        Session {
+            user: LilaUser {
+                id: "anonymous".to_owned(),
+                username: "Anonymous".to_owned(),
+                online: true,
+                engine: false,
+                booster: false,
+                perfs: HashMap::new(),
+                createdAt: 0,
+                seenAt: 0,
+                playTime: PlayTime {
+                    total: 0,
+                    tv: 0,
+                },
+                nowPlaying: vec!(),
+            },
             cjar: cjar,
-        })
-        //} else if res.status.is_client_error() {
-    } else {
-        error!("Could not login: {}", res.status);
-        Err("Could not login")
+        }
+    }
+
+    pub fn sign_in(username: String, password: String) -> Result<Session, &'static str> {
+        let base_url = "en.lichess.org".to_string();
+        let url = format!("https://{}/login", base_url);
+        let client = Client::new();
+        let mut data = String::new();
+        let mut body = String::new();
+        form_urlencoded::Serializer::new(&mut data)
+            .append_pair("username", &username)
+            .append_pair("password", &password);
+        let mut res = client.post(&*url)
+            .body(&data)
+            .header(Connection::close())
+            .header(Accept(vec![qitem(Mime(
+                            TopLevel::Application,
+                            SubLevel::Ext("vnd.lichess.v1+json".to_owned()),
+                            vec![]))]))
+            .header(UserAgent("liru/0.1.1".to_owned()))
+            .header(ContentType::form_url_encoded())
+            .send()
+            .unwrap();
+        if res.status.is_success() {
+            let cookie = match res.headers.get::<SetCookie>() {
+                Some(cookie) => {
+                    cookie.to_owned()
+                },
+                None => {
+                    panic!("Cookies: session cookie expected!");
+                }
+            };
+            res.read_to_string(&mut body);
+            trace!("{}", &body);
+            let mut cjar = CookieJar::new(b"a234lj5sdfla234sjdfasldkfjlasdf");
+            cookie.apply_to_cookie_jar(&mut cjar);
+            Ok(Session {
+                user: json::decode(&body).unwrap(),
+                cjar: cjar,
+            })
+            //} else if res.status.is_client_error() {
+        } else {
+            error!("Could not login: {}", res.status);
+            Err("Could not login")
+        }
+    }
+
+    pub fn get(&self, url: String, mut body: &mut String) {
+        // TODO: catch error and print
+        let client = Client::new();
+        client.get(&*url)
+            .header(Connection::close())
+            .header(Accept(vec![qitem(Mime(TopLevel::Application, SubLevel::Ext("vnd.lichess.v1+json".to_owned()), vec![]))]))
+            .header(Cookie::from_cookie_jar(&self.cjar))
+            .send()
+            .map(|mut res| {
+                res.read_to_string(&mut body);
+            });
     }
 }
-

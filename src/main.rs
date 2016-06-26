@@ -14,10 +14,10 @@ mod ui;
 mod lila;
 
 fn main() {
-    //let session = lila::sign_in("username".to_owned(), "passwordlol".to_owned()).unwrap();
+    //let session = lila::Session::sign_in("username".to_owned(), "passwordlol".to_owned()).unwrap();
     setup_logger(true);
     debug!("Init");
-    let session = lila::anonymous();
+    let session = lila::Session::anonymous();
     let mut ui = ui::UI::new(session);
     ui.start();
     debug!("Exit");

@@ -1,5 +1,7 @@
 pub mod socket;
 
+use lila;
+
 #[derive(RustcDecodable)]
 pub struct Pov {
     pub game: Game,
@@ -82,3 +84,20 @@ pub struct User {
     pub username: String,
 }
 
+use hyper::Client;
+use hyper::header::Connection;
+
+use hyper::header::{Headers, Cookie, CookieJar, Accept, qitem};
+use hyper::mime::{Mime, TopLevel, SubLevel};
+
+use std::io::Read;
+use rustc_serialize::json;
+
+impl Pov {
+    pub fn new(session: &lila::Session, base_url: String, game_id: String) -> Option<Pov> {
+        let mut body = String::new();
+        let url = format!("https://{}/{}", base_url, game_id);
+        session.get(url, &mut body);
+        json::decode(&body).unwrap()
+    }
+}

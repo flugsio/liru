@@ -108,7 +108,7 @@ impl UI {
     }
 
     pub fn add_game(&mut self, name: String, url: String) {
-        let game = GameView::new(&self.session.cjar, name, url);
+        let game = GameView::new(&self.session, name, url);
         self.add_view(Box::new(game) as Box<View>);
     }
 
@@ -258,38 +258,11 @@ impl View for GameView {
 impl MenuView {
 }
 
-
-// TODO: move all this
-//use std::sync::{Arc, Mutex};
 use uuid::Uuid;
-
-use std::io::Read;
-use hyper::Client;
-use hyper::header::Connection;
-
-use hyper::header::{Headers, Cookie, CookieJar, Accept, qitem};
-use hyper::mime::{Mime, TopLevel, SubLevel};
-
-use rustc_serialize::json;
+use hyper::header::{CookieJar};
 
 impl GameView {
-    pub fn new(jar: &CookieJar<'static>, name: String, url: String) -> GameView {
-        // TODO: move this
-        fn get_pov(jar: &CookieJar<'static>, base_url: String, game_id: String) -> Option<game::Pov> {
-            let url = format!("https://{}/{}", base_url, game_id);
-            let client = Client::new();
-            let mut body = String::new();
-            client.get(&*url)
-                .header(Connection::close())
-                .header(Accept(vec![qitem(Mime(TopLevel::Application, SubLevel::Ext("vnd.lichess.v1+json".to_owned()), vec![]))]))
-                .header(Cookie::from_cookie_jar(&jar))
-                .send()
-                .map(|mut res| {
-                    res.read_to_string(&mut body);
-                });
-            // TODO: catch error and print
-            json::decode(&body).unwrap()
-        }
+    pub fn new(session: &lila::Session, name: String, url: String) -> GameView {
 
         // TODO: should this be reused or new for each socket?
         let sri = Uuid::new_v4().to_simple_string();
@@ -298,11 +271,11 @@ impl GameView {
 
         let mut povs = Vec::new();
 
-        let pov = get_pov(jar, base_url, url.clone());
+        let pov = game::Pov::new(session, base_url, url.clone());
         match pov {
             Some(pov) => {
                 let pov1 = Arc::new(Mutex::new(pov));
-                game::socket::connect(jar, base_socket_url, sri, pov1.clone());
+                game::socket::connect(session, base_socket_url, sri, pov1.clone());
                 povs.push(pov1);
             },
             None => warn!("no pov")
