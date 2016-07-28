@@ -9,18 +9,45 @@ extern crate websocket;
 extern crate rustbox;
 extern crate time;
 
+use std::io;
+use std::io::Write;
+
 mod game;
 mod ui;
 mod lila;
 
 fn main() {
-    let _session = lila::Session::sign_in("username".to_owned(), "passwordlol".to_owned()).unwrap();
+    let session = setup_session("Press Enter for anonymous");
+    //setup_logger(matches.is_present("debug"));
     setup_logger(true);
     debug!("Init");
-    let session = lila::Session::anonymous();
     let mut ui = ui::UI::new(session);
     ui.start();
     debug!("Exit");
+}
+
+/// Recursively asks for valid credentials
+/// or using anonymous with blank username
+fn setup_session(message: &str) -> lila::Session {
+    println!("{}", message);
+    match acquire("Username") {
+        ref u if u.is_empty() => lila::Session::anonymous(),
+        username =>
+            lila::Session::sign_in(username, acquire("Password"))
+            .unwrap_or_else(|e| setup_session(e))
+    }
+}
+
+/// Prints first argument to stdout and
+/// expects the user to input one line,
+/// which is returned excluding newline
+fn acquire(what: &str) -> String {
+    print!("{}: ", what);
+    io::stdout().flush().unwrap();
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).unwrap();
+    input.pop();
+    input
 }
 
 // levels: trace, debug, info, warn, error
