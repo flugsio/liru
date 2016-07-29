@@ -135,14 +135,14 @@ pub fn connect(session: &lila::Session, base_url: String, sri: String, pov: Arc<
                 },
                 _ => ()
             }
-            match obj.get("t") {
-                Some(&Json::String(ref t)) if t == "move" => {
+            match obj.get("t").and_then(|t| t.as_string()) {
+                Some("move") => {
                     let d = obj.get("d").unwrap().as_object().unwrap();
                     let fen = d.get("fen").unwrap().as_string().unwrap();
                     pov.game.fen = fen.to_string();
                     //cli::render_fen(fen);
                 },
-                Some(&Json::String(ref t)) if t == "clock" => {
+                Some("clock") => {
                     let d = obj.get("d").unwrap().as_object().unwrap();
                     match pov.clock.as_mut() {
                         Some(clock) => {
@@ -152,11 +152,11 @@ pub fn connect(session: &lila::Session, base_url: String, sri: String, pov: Arc<
                         None => ()
                     };
                 },
-                Some(&Json::String(ref t)) if t == "end" => {
+                Some("end") => {
                     let _ = tx_1.send(Message::close());
                     // exit
                 },
-                //Some(&Json::String(ref t)) => println!("unhandled: {:?}", obj),
+                Some(ref t) => warn!("unhandled: {}, {:?}", t, obj),
                 _ => ()
             }
         };
@@ -190,11 +190,11 @@ pub fn connect(session: &lila::Session, base_url: String, sri: String, pov: Arc<
                     debug!("Received obj: {:?}", json);
                     if json.is_object() {
                         let obj = json.as_object().unwrap();
-                        let t = obj.get("t");
-                        match t {
-                            Some(&Json::String(ref t)) if t == "n" => { // pong
+                        match obj.get("t").and_then(|t| t.as_string()) {
+                            Some("n") => { // pong
+                                // track time between pings and these pongs for latency
                             },
-                            Some(&Json::String(ref t)) if t == "b" => { // batch
+                            Some("b") => { // batch
                                 for item in obj.get("d").unwrap().as_array().unwrap().iter() {
                                    let obj = item.as_object().unwrap();
                                    handle(obj.clone());
@@ -214,7 +214,7 @@ pub fn connect(session: &lila::Session, base_url: String, sri: String, pov: Arc<
     let tx_2 = tx.clone();
 
     thread::spawn(move || loop {
-        thread::sleep(Duration::from_millis(1000));
+        thread::sleep(Duration::from_millis(2000));
 
         pov.lock().ok()
             .and_then(|p| p.player.version )
