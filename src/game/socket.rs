@@ -5,6 +5,7 @@ use std::sync::{Arc, Mutex};
 use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
+use std::collections::BTreeMap;
 
 use websocket::{Message, Sender, Receiver};
 use websocket::message::Type;
@@ -14,8 +15,10 @@ use hyper::header::{Cookie};
 
 use rustc_serialize::json;
 use rustc_serialize::json::Json;
+use rustc_serialize::Decodable;
 
 use lila;
+use game::Clock;
 
 // making a move
 // out {"t":"move","d":{"from":"e2","to":"e4","b":1}}
@@ -23,6 +26,58 @@ use lila;
 // in {"v":1,"t":"move","d":{"uci":"e2e4","san":"e4","fen":"rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR","ply":1,"clock":{"white":172800,"black":172800},"dests":{"b8":"a6c6","g8":"f6h6","h7":"h6h5","d7":"d6d5","g7":"g6g5","c7":"c6c5","f7":"f6f5","b7":"b6b5","e7":"e6e5","a7":"a6a5"},"crazyhouse":{"pockets":[{},{}]}}}
 // other player moved
 // in {"v":2,"t":"move","d":{"uci":"g7g5","san":"g5","fen":"rnbqkbnr/pppppp1p/8/6p1/4P3/8/PPPP1PPP/RNBQKBNR","ply":2,"clock":{"white":172800,"black":172800},"dests":{"a2":"a3a4","g1":"f3h3e2","d1":"e2f3g4h5","e1":"e2","d2":"d3d4","b1":"a3c3","e4":"e5","f1":"e2d3c4b5a6","h2":"h3h4","b2":"b3b4","f2":"f3f4","c2":"c3c4","g2":"g3g4"},"crazyhouse":{"pockets":[{},{}]}}}
+
+enum LilaMessage {
+    Pong,
+    Move(Move),
+    Clock(Clock),
+}
+
+impl LilaMessage {
+    fn decode(obj: &BTreeMap<String, json::Json>) -> Vec<LilaMessage> {
+        fn decode<T: Decodable>(data: json::Json) -> T {
+            let mut decoder = json::Decoder::new(data);
+            Decodable::decode(&mut decoder).unwrap()
+        }
+        let mut list = Vec::new();
+        let data = obj.get("d");
+        match (obj.get("t").and_then(|t| t.as_string()), data) {
+            // TODO: gone, crowd, end, tvSelect, challenges, drop,
+            // following_enters, following_leaves, following_onlines,
+            // following_playing, following_stopped_plaing,
+            // message, analysisProgress, reload, and more
+            (Some("n"), _) => {
+                list.push(LilaMessage::Pong);
+            },
+            (Some("move"), Some(data)) => {
+                list.push(LilaMessage::Move(decode(data.to_owned())));
+            },
+            (Some("clock"), Some(data)) => {
+                list.push(LilaMessage::Clock(decode(data.to_owned())));
+            },
+            (Some("b"), Some(data)) => { // batch
+                for item in data.as_array().unwrap().iter() {
+                   let obj = item.as_object().unwrap();
+                   list.extend(LilaMessage::decode(obj));
+                }
+            },
+            (Some(ref t), d) => {
+                warn!("unhandled: {}, {:?}", t, d);
+            },
+            _ => {
+                warn!("unhandled: Missing type");
+            }
+        }
+        list
+    }
+
+}
+
+#[derive(RustcDecodable)]
+struct Move {
+    clock: Option<Clock>,
+    fen: String,
+}
 
 
 #[derive(RustcEncodable)]
@@ -127,38 +182,26 @@ pub fn connect(session: &lila::Session, base_url: String, sri: String, pov: Arc<
     let pov_1 = pov.clone();
     let _receive_loop = thread::spawn(move || {
 
-        let handle = |obj: json::Object| {
+        let handle = |msg: LilaMessage, version: Option<u64>| {
             let mut pov = pov_1.lock().unwrap();
-            match obj.get("v") {
-                Some(&Json::U64(v)) => {
-                    pov.player.version = Some(v as i64);
+            if let Some(v) = version {
+                pov.player.version = Some(v as i64);
+            };
+            match msg {
+                LilaMessage::Pong => {
+                    // TODO
                 },
-                _ => ()
-            }
-            match obj.get("t").and_then(|t| t.as_string()) {
-                Some("move") => {
-                    let d = obj.get("d").unwrap().as_object().unwrap();
-                    let fen = d.get("fen").unwrap().as_string().unwrap();
-                    pov.game.fen = fen.to_string();
-                    //cli::render_fen(fen);
-                },
-                Some("clock") => {
-                    let d = obj.get("d").unwrap().as_object().unwrap();
-                    match pov.clock.as_mut() {
-                        Some(clock) => {
-                            clock.white = d.get("white").unwrap().as_f64().unwrap();
-                            clock.black = d.get("black").unwrap().as_f64().unwrap();
-                        },
-                        None => ()
+                LilaMessage::Move(m) => {
+                    pov.game.fen = m.fen;
+                    if let Some(c) = m.clock {
+                        pov.clock = Some(c);
                     };
                 },
-                Some("end") => {
-                    let _ = tx_1.send(Message::close());
-                    // exit
+                LilaMessage::Clock(c) => {
+                    pov.clock = Some(c);
                 },
-                Some(ref t) => warn!("unhandled: {}, {:?}", t, obj),
-                _ => ()
-            }
+                //LilaMessage::End => tx_1.send(Message::close()).unwrap(),
+            };
         };
 
         for message in receiver.incoming_messages() {
@@ -190,20 +233,10 @@ pub fn connect(session: &lila::Session, base_url: String, sri: String, pov: Arc<
                     debug!("Received obj: {:?}", json);
                     if json.is_object() {
                         let obj = json.as_object().unwrap();
-                        match obj.get("t").and_then(|t| t.as_string()) {
-                            Some("n") => { // pong
-                                // track time between pings and these pongs for latency
-                            },
-                            Some("b") => { // batch
-                                for item in obj.get("d").unwrap().as_array().unwrap().iter() {
-                                   let obj = item.as_object().unwrap();
-                                   handle(obj.clone());
-                                }
-                            }
-                            _ => {
-                                handle(obj.clone());
-                            }
-                        }
+                        let version = obj.get("v").and_then(|v| v.as_u64());
+                        for m in LilaMessage::decode(&obj) {
+                            handle(m, version);
+                        };
                     }
                 }
                 _ => debug!("Unhandled message: {:?}", message),
