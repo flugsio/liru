@@ -11,13 +11,12 @@ use websocket::{Message, Sender, Receiver};
 use websocket::message::Type;
 use websocket::client::request::Url;
 
-use hyper::header::{Cookie};
+use hyper::header::{Cookie, CookieJar};
 
 use rustc_serialize::json;
 use rustc_serialize::json::Json;
 use rustc_serialize::Decodable;
 
-use lila;
 use game::Clock;
 
 // making a move
@@ -114,7 +113,7 @@ pub struct Dest {
     // pub: i8, // bool, but 0 or 1
 }
 
-pub fn connect(session: &lila::Session, base_url: String, sri: String, pov: Arc<Mutex<super::Pov>>) {
+pub fn connect(cjar: &CookieJar, base_url: String, sri: String, pov: Arc<Mutex<super::Pov>>) {
 
     let url;
     {
@@ -128,7 +127,7 @@ pub fn connect(session: &lila::Session, base_url: String, sri: String, pov: Arc<
 
     // TODO: this unwrap fails when url is wrong, port for example
     let mut request = websocket::Client::connect(url).unwrap();
-    request.headers.set(Cookie::from_cookie_jar(&session.cjar));
+    request.headers.set(Cookie::from_cookie_jar(&cjar));
 
     let response = request.send().unwrap();
 

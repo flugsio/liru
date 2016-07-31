@@ -1,10 +1,15 @@
 pub mod socket;
 
 use std::ops::Not;
+use std::sync::{Arc, Mutex};
 
 use rustc_serialize::json;
 
 use lila;
+
+pub struct ConnectedPov {
+    pub pov: Arc<Mutex<Pov>>,
+}
 
 #[derive(RustcDecodable)]
 pub struct Pov {
@@ -97,13 +102,19 @@ pub struct User {
     pub username: String,
 }
 
-impl Pov {
-    pub fn new(session: &lila::Session, base_url: String, game_id: String) -> Option<Pov> {
+impl ConnectedPov {
+    pub fn new(session: &lila::Session, path: &str) -> ConnectedPov {
         let mut body = String::new();
-        let url = format!("https://{}/{}", base_url, game_id);
-        session.get(url, &mut body);
+        session.get(path, &mut body);
         debug!("GET response: {}", body);
-        json::decode(&body).unwrap()
+        let pov = json::decode(&body).unwrap();
+        let pov1 = Arc::new(Mutex::new(pov));
+
+        session.connect(&session.cjar, pov1.clone());
+
+        ConnectedPov {
+            pov: pov1,
+        }
     }
 }
 

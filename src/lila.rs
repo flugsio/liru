@@ -1,5 +1,6 @@
 use std::io::Read;
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 
 use hyper::Client;
 use hyper::header::{
@@ -16,6 +17,10 @@ use hyper::mime::{Mime, TopLevel, SubLevel};
 
 use rustc_serialize::json;
 use url::form_urlencoded;
+use uuid::Uuid;
+
+use game;
+use game::socket;
 
 pub struct Session {
     pub user: LilaUser,
@@ -100,16 +105,19 @@ impl Session {
         }
     }
 
+    pub fn url(path: &str) -> String {
+        let base_url = "https://en.lichess.org";
+        format!("{}/{}", base_url, path)
+    }
+
     pub fn sign_in(username: String, password: String) -> Result<Session, &'static str> {
-        let base_url = "en.lichess.org".to_string();
-        let url = format!("https://{}/login", base_url);
         let client = Client::new();
         let mut data = String::new();
         let mut body = String::new();
         form_urlencoded::Serializer::new(&mut data)
             .append_pair("username", &username)
             .append_pair("password", &password);
-        let mut res = client.post(&*url)
+        let mut res = client.post(&Session::url("login"))
             .body(&data)
             .header(Connection::close())
             .header(Accept(vec![qitem(Mime(
@@ -144,14 +152,21 @@ impl Session {
         }
     }
 
-    pub fn get(&self, url: String, mut body: &mut String) {
+    pub fn get(&self, path: &str, mut body: &mut String) {
         // TODO: catch error and print
         let client = Client::new();
-        client.get(&*url)
+        client.get(&Session::url(path))
             .header(Connection::close())
             .header(Accept(vec![qitem(Mime(TopLevel::Application, SubLevel::Ext("vnd.lichess.v1+json".to_owned()), vec![]))]))
             .header(Cookie::from_cookie_jar(&self.cjar))
             .send()
             .map(|mut res| res.read_to_string(&mut body).ok()).unwrap();
+    }
+
+    pub fn connect(&self, cjar: &CookieJar, pov: Arc<Mutex<game::Pov>>) {
+        // TODO: should this be reused or new for each socket?
+        let sri = Uuid::new_v4().to_simple_string();
+        let base_socket_url = "socket.lichess.org".to_string();
+        socket::connect(cjar, base_socket_url, sri, pov);
     }
 }

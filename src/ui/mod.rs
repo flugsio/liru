@@ -1,7 +1,5 @@
 extern crate rustbox;
 
-use std::sync::{Arc, Mutex};
-
 use std::default::Default;
 
 use rustbox::{Color, RustBox};
@@ -41,7 +39,7 @@ struct GameView {
     name: String,
     #[allow(dead_code)]
     url: String,
-    povs: Vec<Arc<Mutex<game::Pov>>>,
+    povs: Vec<game::ConnectedPov>,
 }
 
 pub enum MenuOption {
@@ -242,7 +240,7 @@ impl View for MenuView {
 impl View for GameView {
     fn render(&self, r: &mut Renderer) {
         for (i, pov) in self.povs.iter().enumerate() {
-            pov.lock().ok().map(|p| self.render_pov(r, i * 30, 0, &p));
+            pov.pov.lock().ok().map(|p| self.render_pov(r, i * 30, 0, &p));
         }
     }
 
@@ -258,27 +256,12 @@ impl View for GameView {
 impl MenuView {
 }
 
-use uuid::Uuid;
-
 impl GameView {
     pub fn new(session: &lila::Session, name: String, url: String) -> GameView {
-
-        // TODO: should this be reused or new for each socket?
-        let sri = Uuid::new_v4().to_simple_string();
-        let base_url = "en.lichess.org".to_string();
-        let base_socket_url = "socket.lichess.org".to_string();
-
         let mut povs = Vec::new();
 
-        let pov = game::Pov::new(session, base_url, url.clone());
-        match pov {
-            Some(pov) => {
-                let pov1 = Arc::new(Mutex::new(pov));
-                game::socket::connect(session, base_socket_url, sri, pov1.clone());
-                povs.push(pov1);
-            },
-            None => warn!("no pov")
-        }
+        let connected_pov = game::ConnectedPov::new(session, &url);
+        povs.push(connected_pov);
 
         return GameView {
             name: name,
