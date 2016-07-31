@@ -1,5 +1,7 @@
 pub mod socket;
 
+use std::ops::Not;
+
 use rustc_serialize::json;
 
 use lila;
@@ -13,6 +15,15 @@ pub struct Pov {
     pub player: Player,
     pub opponent: Player,
     pub tv: Option<Tv>,
+    pub orientation: Orientation, 
+}
+
+#[allow(non_camel_case_types)]
+#[derive(PartialEq, Eq, Copy, Clone)]
+#[derive(RustcDecodable)]
+pub enum Orientation {
+    white,
+    black,
 }
 
 #[derive(RustcDecodable)]
@@ -91,6 +102,29 @@ impl Pov {
         let mut body = String::new();
         let url = format!("https://{}/{}", base_url, game_id);
         session.get(url, &mut body);
+        debug!("GET response: {}", body);
         json::decode(&body).unwrap()
     }
 }
+
+impl Not for Orientation {
+    type Output = Orientation;
+    fn not(self) -> Orientation {
+        if self == Orientation::white {
+            Orientation::black
+        } else {
+            Orientation::white
+        }
+    }
+}
+
+impl Clock {
+    pub fn from(&self, orientation: Orientation) -> f64 {
+        if orientation == Orientation::white {
+            self.white
+        } else {
+            self.black
+        }
+    }
+}
+

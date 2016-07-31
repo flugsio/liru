@@ -11,6 +11,7 @@ use rustbox::{RB_BOLD, RB_NORMAL};
 use time::Duration;
 
 use game;
+use game::Orientation;
 use lila;
 
 #[derive(Clone, Copy)]
@@ -290,11 +291,11 @@ impl GameView {
         self.render_player(r, x + 1, y + 2, &pov.opponent);
         self.render_player(r, x + 1, y + 14, &pov.player);
         let fen = pov.game.fen.clone();
-        self.render_fen(r, x, y, fen);
+        self.render_fen(r, x, y, fen, pov.orientation == Orientation::white);
         match pov.clock {
             Some(ref clock) => {
-                self.render_clock(r, x + 19, y + 3, clock.black);
-                self.render_clock(r, x + 19, y + 12, clock.white);
+                self.render_clock(r, x + 19, y + 3, clock.from(!pov.orientation));
+                self.render_clock(r, x + 19, y + 12, clock.from(pov.orientation));
             },
             None => ()
         };
@@ -315,7 +316,7 @@ impl GameView {
         r.print(x, y, RBStyle { style: RB_BOLD, fg: if time < 10f64 { Color::Red } else { Color::White }, bg: Color::Black }, &format!("{:04.1}", time));
     }
 
-    pub fn render_fen(&self, r: &mut Renderer, x: usize, y: usize, fen: String) {
+    pub fn render_fen(&self, r: &mut Renderer, x: usize, y: usize, fen: String, orientation: bool) {
         let _text_style  = RBStyle { style: RB_BOLD, fg: Color::White, bg:    Color::Black };
         let border      = RBStyle { style: RB_NORMAL, fg: Color::Cyan, bg:   Color::Black };
         let piece_dark  = RBStyle { style: RB_BOLD, fg: Color::Blue, bg:     Color::Black };
@@ -326,11 +327,22 @@ impl GameView {
         //r.print(x + 3, y +  1, text_style, &fen);
         r.print(x + 5, y +  3, border, "╔═════════════════╗");
         r.print(x + 5, y + 12, border, "╚═════════════════╝");
-        r.print(x + 7, y + 13, border,   "A B C D E F G H");
+        if orientation {
+            r.print(x + 7, y + 13, border,   "a b c d e f g h");
+        } else {
+            r.print(x + 7, y + 13, border,   "h g f e d c b a");
+        }
 
         // TODO: fen parser
         // r1bqkb1r/ppp1pppp/2n2n2/3p4/4P3/3P1P2/PPP3PP/RNBQKBNR w KQkq - 1 4
-        for (y2, row) in fen.split(' ').next().unwrap().split('/').enumerate() {
+        let mut fen = fen.split(' ').next().unwrap().to_string();
+        if !orientation {
+            fen = fen.chars().rev().collect();
+        }
+        for (y2, row) in fen.split('/').enumerate() {
+            if y2 >= 8 {
+                break; // temp workaround for crazyhouse
+            }
             let row = row
                 .replace("8", "········")
                 .replace("7", "·······")
@@ -340,7 +352,11 @@ impl GameView {
                 .replace("3", "···")
                 .replace("2", "··")
                 .replace("1", "·");
-            r.print(x + 3, 4 + y + y2, border, &format!("{} ║", 9-(y2+1)));
+            if orientation {
+                r.print(x + 3, 4 + y + y2, border, &format!("{} ║", 9-(y2+1)));
+            } else {
+                r.print(x + 3, 4 + y + y2, border, &format!("{} ║", y2+1));
+            }
             r.print(x + 23, 4 + y + y2, border, "║");
             for (x2, char) in row.chars().enumerate() {
                 let color = if char == '·' {
