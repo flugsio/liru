@@ -35,9 +35,10 @@ enum LilaMessage {
 
 impl LilaMessage {
     fn decode(obj: &BTreeMap<String, json::Json>) -> Option<LilaMessage> {
-        fn decode<T: Decodable>(data: json::Json) -> T {
-            let mut decoder = json::Decoder::new(data);
-            Decodable::decode(&mut decoder).unwrap()
+        fn decode<T: Decodable>(data: &json::Json) -> Option<T> {
+            let mut decoder = json::Decoder::new(data.to_owned());
+            Decodable::decode(&mut decoder)
+                .map_err(|e| error!("could not decode: {}", e)).ok()
         }
         let data = obj.get("d");
         match (obj.get("t").and_then(|t| t.as_string()), data) {
@@ -45,12 +46,8 @@ impl LilaMessage {
             // following_enters, following_leaves, following_onlines,
             // following_playing, following_stopped_plaing,
             // message, analysisProgress, reload, and more
-            (Some("move"), Some(data)) => {
-                Some(LilaMessage::Move(decode(data.to_owned())))
-            },
-            (Some("clock"), Some(data)) => {
-                Some(LilaMessage::Clock(decode(data.to_owned())))
-            },
+            (Some("move"), Some(data)) => decode(data).map(|d| LilaMessage::Move(d)),
+            (Some("clock"), Some(data)) => decode(data).map(|d| LilaMessage::Clock(d)),
             (Some(ref t), d) => {
                 warn!("unhandled: {}, {:?}", t, d);
                 None
