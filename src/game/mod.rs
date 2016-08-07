@@ -107,10 +107,15 @@ impl ConnectedPov {
         let mut body = String::new();
         session.get(path, &mut body);
         debug!("GET response: {}", body);
-        let pov = json::decode(&body).unwrap();
+        let pov: Pov = json::decode(&body).unwrap();
+        let version = match pov.player.version {
+            Some(v) => v as u64,
+            None => 0
+        };
+        let socket_path = pov.url.socket.clone();
         let pov1 = Arc::new(Mutex::new(pov));
 
-        session.connect(&session.cjar, pov1.clone());
+        session.connect(version, socket_path, pov1.clone());
 
         ConnectedPov {
             pov: pov1,

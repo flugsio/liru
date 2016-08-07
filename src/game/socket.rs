@@ -102,19 +102,10 @@ pub struct Dest {
     // pub: i8, // bool, but 0 or 1
 }
 
-pub fn connect(cjar: &CookieJar, base_url: String, sri: String, pov: Arc<Mutex<super::Pov>>) {
-    let url;
-    let version;
-    {
-        let pov = pov.lock().unwrap();
-        let v = match pov.player.version {
-            Some(v) => v as u64,
-            None => 0
-        };
-        url = Url::parse(&format!("ws://{}{}?sri={}&version={}", base_url, pov.url.socket.clone(), sri, v)).unwrap();
-        version = Arc::new(Mutex::new(v));
-    }
-
+pub fn connect(cjar: &CookieJar, url: String, version: u64, pov: Arc<Mutex<super::Pov>>) {
+    // wraps version for usage in receive and ping threads
+    let version = Arc::new(Mutex::new(version));
+    let url = Url::parse(&url).unwrap();
     // TODO: this unwrap fails when url is wrong, port for example
     let mut request = websocket::Client::connect(url).unwrap();
     request.headers.set(Cookie::from_cookie_jar(&cjar));

@@ -110,6 +110,11 @@ impl Session {
         format!("{}/{}", base_url, path)
     }
 
+    pub fn socket_url(path: &str) -> String {
+        let base_url = "ws://socket.lichess.org";
+        format!("{}/{}", base_url, path)
+    }
+
     pub fn sign_in(username: String, password: String) -> Result<Session, &'static str> {
         let client = Client::new();
         let mut data = String::new();
@@ -163,10 +168,10 @@ impl Session {
             .map(|mut res| res.read_to_string(&mut body).ok()).unwrap();
     }
 
-    pub fn connect(&self, cjar: &CookieJar, pov: Arc<Mutex<game::Pov>>) {
+    pub fn connect(&self, version: u64, socket_path: String, pov: Arc<Mutex<game::Pov>>) {
         // TODO: should this be reused or new for each socket?
         let sri = Uuid::new_v4().to_simple_string();
-        let base_socket_url = "socket.lichess.org".to_string();
-        socket::connect(cjar, base_socket_url, sri, pov);
+        let url = Session::socket_url(&format!("/{}?sri={}&version={}", socket_path, sri, version));
+        socket::connect(&self.cjar, url, version, pov);
     }
 }
