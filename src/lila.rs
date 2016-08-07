@@ -111,7 +111,7 @@ impl Session {
     }
 
     pub fn socket_url(path: &str) -> String {
-        let base_url = "ws://socket.lichess.org";
+        let base_url = "wss://socket.lichess.org";
         format!("{}/{}", base_url, path)
     }
 
@@ -170,7 +170,8 @@ impl Session {
 
     pub fn connect(&self, version: u64, socket_path: String, pov: Arc<Mutex<game::Pov>>) {
         // TODO: should this be reused or new for each socket?
-        let sri = Uuid::new_v4().to_simple_string();
+        let sri = Uuid::new_v4();
+        debug!("SRI set to {}", sri);
         let url = Session::socket_url(&format!("/{}?sri={}&version={}", socket_path, sri, version));
         socket::connect(&self.cjar, url, version, pov);
     }
