@@ -13,6 +13,8 @@ use websocket::client::request::Url;
 
 use hyper::header::{Cookie, CookieJar};
 
+use time;
+
 use rustc_serialize::json;
 use rustc_serialize::json::Json;
 use rustc_serialize::Decodable;
@@ -27,47 +29,37 @@ use game::Clock;
 // in {"v":2,"t":"move","d":{"uci":"g7g5","san":"g5","fen":"rnbqkbnr/pppppp1p/8/6p1/4P3/8/PPPP1PPP/RNBQKBNR","ply":2,"clock":{"white":172800,"black":172800},"dests":{"a2":"a3a4","g1":"f3h3e2","d1":"e2f3g4h5","e1":"e2","d2":"d3d4","b1":"a3c3","e4":"e5","f1":"e2d3c4b5a6","h2":"h3h4","b2":"b3b4","f2":"f3f4","c2":"c3c4","g2":"g3g4"},"crazyhouse":{"pockets":[{},{}]}}}
 
 enum LilaMessage {
-    Pong,
     Move(Move),
     Clock(Clock),
 }
 
 impl LilaMessage {
-    fn decode(obj: &BTreeMap<String, json::Json>) -> Vec<LilaMessage> {
+    fn decode(obj: &BTreeMap<String, json::Json>) -> Option<LilaMessage> {
         fn decode<T: Decodable>(data: json::Json) -> T {
             let mut decoder = json::Decoder::new(data);
             Decodable::decode(&mut decoder).unwrap()
         }
-        let mut list = Vec::new();
         let data = obj.get("d");
         match (obj.get("t").and_then(|t| t.as_string()), data) {
             // TODO: gone, crowd, end, tvSelect, challenges, drop,
             // following_enters, following_leaves, following_onlines,
             // following_playing, following_stopped_plaing,
             // message, analysisProgress, reload, and more
-            (Some("n"), _) => {
-                list.push(LilaMessage::Pong);
-            },
             (Some("move"), Some(data)) => {
-                list.push(LilaMessage::Move(decode(data.to_owned())));
+                Some(LilaMessage::Move(decode(data.to_owned())))
             },
             (Some("clock"), Some(data)) => {
-                list.push(LilaMessage::Clock(decode(data.to_owned())));
-            },
-            (Some("b"), Some(data)) => { // batch
-                for item in data.as_array().unwrap().iter() {
-                   let obj = item.as_object().unwrap();
-                   list.extend(LilaMessage::decode(obj));
-                }
+                Some(LilaMessage::Clock(decode(data.to_owned())))
             },
             (Some(ref t), d) => {
                 warn!("unhandled: {}, {:?}", t, d);
+                None
             },
             _ => {
                 warn!("unhandled: Missing type");
+                None
             }
         }
-        list
     }
 
 }
@@ -82,11 +74,11 @@ struct Move {
 #[derive(RustcEncodable)]
 struct PingPacket {
     t: String,
-    v: i64
+    v: u64
 }
 
 impl PingPacket {
-    pub fn new(version: i64) -> PingPacket {
+    pub fn new(version: u64) -> PingPacket {
         PingPacket {
             t: "p".to_string(),
             v: version
@@ -114,15 +106,16 @@ pub struct Dest {
 }
 
 pub fn connect(cjar: &CookieJar, base_url: String, sri: String, pov: Arc<Mutex<super::Pov>>) {
-
     let url;
+    let version;
     {
         let pov = pov.lock().unwrap();
-        let version = match pov.player.version {
-            Some(v) => v,
+        let v = match pov.player.version {
+            Some(v) => v as u64,
             None => 0
         };
-        url = Url::parse(&format!("ws://{}{}?sri={}&version={}", base_url, pov.url.socket.clone(), sri, version)).unwrap();
+        url = Url::parse(&format!("ws://{}{}?sri={}&version={}", base_url, pov.url.socket.clone(), sri, v)).unwrap();
+        version = Arc::new(Mutex::new(v));
     }
 
     // TODO: this unwrap fails when url is wrong, port for example
@@ -178,28 +171,35 @@ pub fn connect(cjar: &CookieJar, base_url: String, sri: String, pov: Arc<Mutex<s
         }
     });
 
+    let (pong_tx, pong_rx) = mpsc::channel();
     let pov_1 = pov.clone();
+    let version_1 = version.clone();
     let _receive_loop = thread::spawn(move || {
 
-        let handle = |msg: LilaMessage, version: Option<u64>| {
+        let handle = |obj: &BTreeMap<String, json::Json>| {
+            if let (Some(v), Ok(mut version)) = (obj.get("v").and_then(|v| v.as_u64()), version_1.lock()) {
+                if v <= *version {
+                    debug!("Already has event {}", v);
+                    return;
+                } else if *version + 1 < v {
+                    debug!("Event gap detected from {} to {}", *version, v);
+                    return;
+                }
+                *version = v;
+            }
             let mut pov = pov_1.lock().unwrap();
-            if let Some(v) = version {
-                pov.player.version = Some(v as i64);
-            };
-            match msg {
-                LilaMessage::Pong => {
-                    // TODO
-                },
-                LilaMessage::Move(m) => {
+            match LilaMessage::decode(obj) {
+                Some(LilaMessage::Move(m)) => {
                     pov.game.fen = m.fen;
                     if let Some(c) = m.clock {
                         pov.clock = Some(c);
                     };
                 },
-                LilaMessage::Clock(c) => {
+                Some(LilaMessage::Clock(c)) => {
                     pov.clock = Some(c);
                 },
                 //LilaMessage::End => tx_1.send(Message::close()).unwrap(),
+                _ => ()
             };
         };
 
@@ -232,10 +232,17 @@ pub fn connect(cjar: &CookieJar, base_url: String, sri: String, pov: Arc<Mutex<s
                     debug!("Received obj: {:?}", json);
                     if json.is_object() {
                         let obj = json.as_object().unwrap();
-                        let version = obj.get("v").and_then(|v| v.as_u64());
-                        for m in LilaMessage::decode(&obj) {
-                            handle(m, version);
-                        };
+                        match obj.get("t").and_then(|t| t.as_string()) {
+                            Some("n") => pong_tx.send(()).unwrap(),
+                            Some("b") => { // batch
+                                let data = obj.get("d").unwrap();
+                                for item in data.as_array().unwrap().iter() {
+                                    let obj = item.as_object().unwrap();
+                                    handle(obj);
+                                }
+                            },
+                            _ => handle(obj)
+                        }
                     }
                 }
                 _ => debug!("Unhandled message: {:?}", message),
@@ -244,14 +251,17 @@ pub fn connect(cjar: &CookieJar, base_url: String, sri: String, pov: Arc<Mutex<s
     });
 
     let tx_2 = tx.clone();
-
+    let version_2 = version.clone();
     thread::spawn(move || loop {
         thread::sleep(Duration::from_millis(2000));
 
-        pov.lock().ok()
-            .and_then(|p| p.player.version )
-            .map(|v| PingPacket::new(v).to_message())
-            .map(|p| tx_2.send(p).unwrap());
+        let ping;
+        { ping = PingPacket::new(*version_2.lock().unwrap()).to_message(); }
+        let before = time::now_utc();
+        tx_2.send(ping).unwrap(); // TODO: stop pinging when socket is closed
+        pong_rx.recv().unwrap();
+        let after = time::now_utc();
+        debug!("Ping time: {}", after-before);
     });
 
     //let _ = send_loop.join();
