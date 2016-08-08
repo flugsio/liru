@@ -124,6 +124,7 @@ pub fn connect(cjar: &CookieJar, url: String, version: u64, pov: Arc<Mutex<super
     //println!("Successfully connected");
 
     let (mut sender, mut receiver) = response.begin().split();
+    sender.get_mut().set_nodelay(true).unwrap();
 
     let (tx, rx) = mpsc::channel();
 
