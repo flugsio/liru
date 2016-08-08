@@ -1,6 +1,7 @@
 use std::io::Read;
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use std::collections::BTreeMap;
+use std::sync::mpsc;
 
 use hyper::Client;
 use hyper::header::{
@@ -19,7 +20,6 @@ use rustc_serialize::json;
 use url::form_urlencoded;
 use uuid::Uuid;
 
-use game;
 use game::socket;
 
 pub struct Session {
@@ -168,11 +168,11 @@ impl Session {
             .map(|mut res| res.read_to_string(&mut body).ok()).unwrap();
     }
 
-    pub fn connect(&self, version: u64, socket_path: String, pov: Arc<Mutex<game::Pov>>) {
+    pub fn connect(&self, version: u64, socket_path: String, game_tx: mpsc::Sender<BTreeMap<String, json::Json>>) {
         // TODO: should this be reused or new for each socket?
         let sri = Uuid::new_v4();
         debug!("SRI set to {}", sri);
         let url = Session::socket_url(&format!("/{}?sri={}&version={}", socket_path, sri, version));
-        socket::connect(&self.cjar, url, version, pov);
+        socket::connect(&self.cjar, url, version, game_tx);
     }
 }

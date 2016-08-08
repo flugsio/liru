@@ -17,9 +17,6 @@ use time;
 
 use rustc_serialize::json;
 use rustc_serialize::json::Json;
-use rustc_serialize::Decodable;
-
-use game::Clock;
 
 // making a move
 // out {"t":"move","d":{"from":"e2","to":"e4","b":1}}
@@ -27,46 +24,6 @@ use game::Clock;
 // in {"v":1,"t":"move","d":{"uci":"e2e4","san":"e4","fen":"rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR","ply":1,"clock":{"white":172800,"black":172800},"dests":{"b8":"a6c6","g8":"f6h6","h7":"h6h5","d7":"d6d5","g7":"g6g5","c7":"c6c5","f7":"f6f5","b7":"b6b5","e7":"e6e5","a7":"a6a5"},"crazyhouse":{"pockets":[{},{}]}}}
 // other player moved
 // in {"v":2,"t":"move","d":{"uci":"g7g5","san":"g5","fen":"rnbqkbnr/pppppp1p/8/6p1/4P3/8/PPPP1PPP/RNBQKBNR","ply":2,"clock":{"white":172800,"black":172800},"dests":{"a2":"a3a4","g1":"f3h3e2","d1":"e2f3g4h5","e1":"e2","d2":"d3d4","b1":"a3c3","e4":"e5","f1":"e2d3c4b5a6","h2":"h3h4","b2":"b3b4","f2":"f3f4","c2":"c3c4","g2":"g3g4"},"crazyhouse":{"pockets":[{},{}]}}}
-
-enum LilaMessage {
-    Move(Move),
-    Clock(Clock),
-}
-
-impl LilaMessage {
-    fn decode(obj: &BTreeMap<String, json::Json>) -> Option<LilaMessage> {
-        fn decode<T: Decodable>(data: &json::Json) -> Option<T> {
-            let mut decoder = json::Decoder::new(data.to_owned());
-            Decodable::decode(&mut decoder)
-                .map_err(|e| error!("could not decode: {}", e)).ok()
-        }
-        let data = obj.get("d");
-        match (obj.get("t").and_then(|t| t.as_string()), data) {
-            // TODO: gone, crowd, end, tvSelect, challenges, drop,
-            // following_enters, following_leaves, following_onlines,
-            // following_playing, following_stopped_plaing,
-            // message, analysisProgress, reload, and more
-            (Some("move"), Some(data)) => decode(data).map(|d| LilaMessage::Move(d)),
-            (Some("clock"), Some(data)) => decode(data).map(|d| LilaMessage::Clock(d)),
-            (Some(ref t), d) => {
-                warn!("unhandled: {}, {:?}", t, d);
-                None
-            },
-            _ => {
-                warn!("unhandled: Missing type");
-                None
-            }
-        }
-    }
-
-}
-
-#[derive(RustcDecodable)]
-struct Move {
-    clock: Option<Clock>,
-    fen: String,
-}
-
 
 #[derive(RustcEncodable)]
 struct PingPacket {
@@ -102,7 +59,7 @@ pub struct Dest {
     // pub: i8, // bool, but 0 or 1
 }
 
-pub fn connect(cjar: &CookieJar, url: String, version: u64, pov: Arc<Mutex<super::Pov>>) {
+pub fn connect(cjar: &CookieJar, url: String, version: u64, game_tx: mpsc::Sender<BTreeMap<String, json::Json>>) {
     // wraps version for usage in receive and ping threads
     let version = Arc::new(Mutex::new(version));
     let url = Url::parse(&url).unwrap();
@@ -161,7 +118,6 @@ pub fn connect(cjar: &CookieJar, url: String, version: u64, pov: Arc<Mutex<super
     });
 
     let (pong_tx, pong_rx) = mpsc::channel();
-    let pov_1 = pov.clone();
     let version_1 = version.clone();
     let _receive_loop = thread::spawn(move || {
 
@@ -176,20 +132,7 @@ pub fn connect(cjar: &CookieJar, url: String, version: u64, pov: Arc<Mutex<super
                 }
                 *version = v;
             }
-            let mut pov = pov_1.lock().unwrap();
-            match LilaMessage::decode(obj) {
-                Some(LilaMessage::Move(m)) => {
-                    pov.game.fen = m.fen;
-                    if let Some(c) = m.clock {
-                        pov.clock = Some(c);
-                    };
-                },
-                Some(LilaMessage::Clock(c)) => {
-                    pov.clock = Some(c);
-                },
-                //LilaMessage::End => tx_1.send(Message::close()).unwrap(),
-                _ => ()
-            };
+            game_tx.send(obj.to_owned()).unwrap();
         };
 
         for message in receiver.incoming_messages() {

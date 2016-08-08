@@ -1,9 +1,14 @@
 pub mod socket;
 
+use std::collections::BTreeMap;
+
 use std::ops::Not;
 use std::sync::{Arc, Mutex};
+use std::sync::mpsc;
+use std::thread;
 
 use rustc_serialize::json;
+use rustc_serialize::Decodable;
 
 use lila;
 
@@ -113,12 +118,31 @@ impl ConnectedPov {
             None => 0
         };
         let socket_path = pov.url.socket.clone();
-        let pov1 = Arc::new(Mutex::new(pov));
+        let pov_1 = Arc::new(Mutex::new(pov));
+        let (game_tx, game_rx) = mpsc::channel();
 
-        session.connect(version, socket_path, pov1.clone());
+        let pov_2 = pov_1.clone();
+        session.connect(version, socket_path, game_tx);
+        thread::spawn(move || loop {
+            let obj = game_rx.recv().unwrap();
+            let mut pov = pov_2.lock().unwrap();
+            match LilaMessage::decode(&obj) {
+                Some(LilaMessage::Move(m)) => {
+                    pov.game.fen = m.fen;
+                    if let Some(c) = m.clock {
+                        pov.clock = Some(c);
+                    };
+                },
+                Some(LilaMessage::Clock(c)) => {
+                    pov.clock = Some(c);
+                },
+                //LilaMessage::End => tx_1.send(Message::close()).unwrap(),
+                _ => ()
+            };
+        });
 
         ConnectedPov {
-            pov: pov1,
+            pov: pov_1,
         }
     }
 }
@@ -142,5 +166,44 @@ impl Clock {
             self.black
         }
     }
+}
+
+enum LilaMessage {
+    Move(Move),
+    Clock(Clock),
+}
+
+impl LilaMessage {
+    fn decode(obj: &BTreeMap<String, json::Json>) -> Option<LilaMessage> {
+        fn decode<T: Decodable>(data: &json::Json) -> Option<T> {
+            let mut decoder = json::Decoder::new(data.to_owned());
+            Decodable::decode(&mut decoder)
+                .map_err(|e| error!("could not decode: {}", e)).ok()
+        }
+        let data = obj.get("d");
+        match (obj.get("t").and_then(|t| t.as_string()), data) {
+            // TODO: gone, crowd, end, tvSelect, challenges, drop,
+            // following_enters, following_leaves, following_onlines,
+            // following_playing, following_stopped_plaing,
+            // message, analysisProgress, reload, and more
+            (Some("move"), Some(data)) => decode(data).map(|d| LilaMessage::Move(d)),
+            (Some("clock"), Some(data)) => decode(data).map(|d| LilaMessage::Clock(d)),
+            (Some(ref t), d) => {
+                warn!("unhandled: {}, {:?}", t, d);
+                None
+            },
+            _ => {
+                warn!("unhandled: Missing type");
+                None
+            }
+        }
+    }
+
+}
+
+#[derive(RustcDecodable)]
+struct Move {
+    clock: Option<Clock>,
+    fen: String,
 }
 
