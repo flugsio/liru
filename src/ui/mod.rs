@@ -274,11 +274,11 @@ impl GameView {
         self.render_player(r, x + 1, y + 2, &pov.opponent);
         self.render_player(r, x + 1, y + 14, &pov.player);
         let fen = pov.game.fen.clone();
-        self.render_fen(r, x, y, fen, pov.orientation == Orientation::white);
+        self.render_fen(r, x, y, fen, pov.orientation() == Orientation::white);
         match pov.clock {
             Some(ref clock) => {
-                self.render_clock(r, x + 19, y + 3, clock.from(!pov.orientation));
-                self.render_clock(r, x + 19, y + 12, clock.from(pov.orientation));
+                self.render_clock(r, x + 19, y + 3, clock.from(!pov.orientation()));
+                self.render_clock(r, x + 19, y + 12, clock.from(pov.orientation()));
             },
             None => ()
         };

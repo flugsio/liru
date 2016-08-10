@@ -25,7 +25,7 @@ pub struct Pov {
     pub player: Player,
     pub opponent: Player,
     pub tv: Option<Tv>,
-    pub orientation: Orientation, 
+    pub orientation: Option<Orientation>, 
 }
 
 #[allow(non_camel_case_types)]
@@ -94,7 +94,7 @@ pub struct Status {
 
 #[derive(RustcDecodable)]
 pub struct Player {
-    pub color: String,
+    pub color: Orientation,
     pub version: Option<i64>,
     pub spectator: Option<bool>,
     pub user: Option<User>,
@@ -143,6 +143,17 @@ impl ConnectedPov {
 
         ConnectedPov {
             pov: pov_1,
+        }
+    }
+}
+
+impl Pov {
+    pub fn orientation(&self) -> Orientation {
+        match self.orientation {
+            Some(o) => o,
+            None => {
+                self.player.color
+            }
         }
     }
 }
