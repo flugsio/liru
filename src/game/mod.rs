@@ -9,8 +9,10 @@ use std::thread;
 
 use rustc_serialize::json;
 use rustc_serialize::Decodable;
+use uuid::Uuid;
 
 use lila;
+use lila::Session;
 
 pub struct ConnectedPov {
     pub pov: Arc<Mutex<Pov>>,
@@ -122,7 +124,13 @@ impl ConnectedPov {
         let (game_tx, game_rx) = mpsc::channel();
 
         let pov_2 = pov_1.clone();
-        session.connect(version, socket_path, game_tx);
+        let c = session.cookie();
+        let sri = Uuid::new_v4();
+        debug!("SRI set to {}", sri);
+        let url = Session::socket_url(&format!("{}?sri={}&version={}", socket_path, sri, version));
+        thread::spawn(move || {
+            socket::Client::connect(&c, url.clone(), version, game_tx.clone());
+        });
         thread::spawn(move || loop {
             let obj = game_rx.recv().unwrap();
             let mut pov = pov_2.lock().unwrap();
@@ -216,5 +224,20 @@ impl LilaMessage {
 struct Move {
     clock: Option<Clock>,
     fen: String,
+}
+
+#[allow(dead_code)]
+#[derive(RustcEncodable)]
+pub struct MovePacket {
+    t: String,
+    d: Dest,
+}
+
+#[allow(dead_code)]
+#[derive(RustcEncodable)]
+pub struct Dest {
+    pub from: String,
+    pub to: String,
+    // pub: i8, // bool, but 0 or 1
 }
 

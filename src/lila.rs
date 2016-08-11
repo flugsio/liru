@@ -1,7 +1,5 @@
 use std::io::Read;
 use std::collections::HashMap;
-use std::collections::BTreeMap;
-use std::sync::mpsc;
 
 use hyper::Client;
 use hyper::header::{
@@ -18,9 +16,6 @@ use hyper::mime::{Mime, TopLevel, SubLevel};
 
 use rustc_serialize::json;
 use url::form_urlencoded;
-use uuid::Uuid;
-
-use game::socket;
 
 pub struct Session {
     pub user: LilaUser,
@@ -112,7 +107,7 @@ impl Session {
 
     pub fn socket_url(path: &str) -> String {
         let base_url = "wss://socket.lichess.org";
-        format!("{}/{}", base_url, path)
+        format!("{}{}", base_url, path)
     }
 
     pub fn sign_in(username: String, password: String) -> Result<Session, &'static str> {
@@ -168,11 +163,7 @@ impl Session {
             .map(|mut res| res.read_to_string(&mut body).ok()).unwrap();
     }
 
-    pub fn connect(&self, version: u64, socket_path: String, game_tx: mpsc::Sender<BTreeMap<String, json::Json>>) {
-        // TODO: should this be reused or new for each socket?
-        let sri = Uuid::new_v4();
-        debug!("SRI set to {}", sri);
-        let url = Session::socket_url(&format!("/{}?sri={}&version={}", socket_path, sri, version));
-        socket::connect(&self.cjar, url, version, game_tx);
+    pub fn cookie(&self) -> Cookie {
+        Cookie::from_cookie_jar(&self.cjar)
     }
 }

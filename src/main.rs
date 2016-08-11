@@ -5,7 +5,7 @@ extern crate uuid;
 extern crate hyper;
 extern crate url;
 extern crate rustc_serialize;
-extern crate websocket;
+extern crate ws;
 extern crate rustbox;
 extern crate time;
 

@@ -1,13 +1,13 @@
 [package]
 name = "liru"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Jimmie Elvenmark <flugsio@gmail.com>"]
 
 [dependencies]
 log = "0.3.6"
 fern = "0.3.5"
 uuid = { version = "0.3", features = ["v4"] }
-websocket = "0.17.1"
+ws = { version = "0.5.2", features = ["ssl"] }
 rustc-serialize = "0.3.19"
 rustbox = "0.7"
 time = "0.1.35"
