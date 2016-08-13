@@ -4,6 +4,9 @@ use std::rc::Rc;
 use std::cell::Cell;
 use std::sync::mpsc;
 use std::collections::BTreeMap;
+use std::sync::{Arc, Mutex};
+
+use std::thread;
 
 use hyper::header::{HeaderFormatter, Cookie};
 
@@ -115,18 +118,34 @@ impl Handler for Client {
 }
 
 impl Client {
-    pub fn connect(c: &Cookie, url: String, version: u64, game_tx: mpsc::Sender<BTreeMap<String, json::Json>>) {
+    pub fn connect(c: &Cookie, url: String, version: u64,
+                   game_tx: mpsc::Sender<BTreeMap<String, json::Json>>,
+                   send_rx: Arc<Mutex<mpsc::Receiver<String>>>) {
         debug!("connecting to: {}", url.clone());
         let v = Rc::new(Cell::new(version));
         let last_ping = Rc::new(Cell::new(time::now_utc()));
+
         ws::connect(url.to_owned(), |out| {
+            {
+                let out2 = out.clone();
+                let send_rx = send_rx.clone();
+                thread::spawn(move || {
+                    let send_rx = send_rx.lock().unwrap();
+                    loop {
+                        let msg = send_rx.recv().unwrap();
+                        debug!("Sending: {}", msg);
+                        out2.send(msg).unwrap();
+                    };
+                });
+            }
             Client {
-                out: out,
+                out: out.clone(),
                 version: v.clone(),
                 game_tx: game_tx.clone(),
                 last_ping: last_ping.clone(),
                 cookie: c.clone(),
-            } }).unwrap()
+            }
+        }).unwrap();
     }
 
     fn on_handle(&mut self, obj: &BTreeMap<String, json::Json>) {

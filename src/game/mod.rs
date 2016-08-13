@@ -16,6 +16,7 @@ use lila::Session;
 
 pub struct ConnectedPov {
     pub pov: Arc<Mutex<Pov>>,
+    send_tx: mpsc::Sender<String>,
 }
 
 #[derive(RustcDecodable)]
@@ -122,6 +123,8 @@ impl ConnectedPov {
         let socket_path = pov.url.socket.clone();
         let pov_1 = Arc::new(Mutex::new(pov));
         let (game_tx, game_rx) = mpsc::channel();
+        let (send_tx, send_rx) = mpsc::channel();
+        let send_rx = Arc::new(Mutex::new(send_rx));
 
         let pov_2 = pov_1.clone();
         let c = session.cookie();
@@ -129,7 +132,7 @@ impl ConnectedPov {
         debug!("SRI set to {}", sri);
         let url = Session::socket_url(&format!("{}?sri={}&version={}", socket_path, sri, version));
         thread::spawn(move || {
-            socket::Client::connect(&c, url.clone(), version, game_tx.clone());
+            socket::Client::connect(&c, url.clone(), version, game_tx.clone(), send_rx);
         });
         thread::spawn(move || loop {
             let obj = game_rx.recv().unwrap();
@@ -151,7 +154,20 @@ impl ConnectedPov {
 
         ConnectedPov {
             pov: pov_1,
+            send_tx: send_tx,
         }
+    }
+
+    pub fn send_move(&mut self, from: String, to: String) {
+        let move_packet = MovePacket {
+            t: "move".to_string(),
+            d: Dest {
+                from: from,
+                to: to,
+            },
+        };
+        let message = json::encode(&move_packet).unwrap();
+        self.send_tx.send(message).unwrap();
     }
 }
 

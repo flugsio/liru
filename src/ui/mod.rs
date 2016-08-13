@@ -40,6 +40,7 @@ struct GameView {
     #[allow(dead_code)]
     url: String,
     povs: Vec<game::ConnectedPov>,
+    input: Vec<char>,
 }
 
 pub enum MenuOption {
@@ -71,6 +72,11 @@ impl UI {
 
         let mut views = Vec::new();
         let mut menu_options = Vec::new();
+
+        for game in &session.user.nowPlaying {
+            menu_options.push(MenuOption::WatchTv { name: game.gameId.clone(), url: game.fullId.clone() });
+        }
+
         menu_options.push(MenuOption::WatchTv { name: "Best".to_string(), url: "tv/best".to_string() });
         menu_options.push(MenuOption::WatchTv { name: "Bullet".to_string(), url: "tv/bullet".to_string() });
         menu_options.push(MenuOption::WatchTv { name: "Blitz".to_string(), url: "tv/blitz".to_string() });
@@ -84,10 +90,6 @@ impl UI {
         menu_options.push(MenuOption::WatchTv { name: "Horde".to_string(), url: "tv/horde".to_string() });
         menu_options.push(MenuOption::WatchTv { name: "Racing Kings".to_string(), url: "tv/racingKings".to_string() });
         menu_options.push(MenuOption::WatchTv { name: "Computer".to_string(), url: "tv/computer".to_string() });
-
-        for game in &session.user.nowPlaying {
-            menu_options.push(MenuOption::WatchTv { name: game.gameId.clone(), url: game.fullId.clone() });
-        }
 
         views.push(Box::new(MenuView {
             menu_options: menu_options,
@@ -242,13 +244,27 @@ impl View for GameView {
         for (i, pov) in self.povs.iter().enumerate() {
             pov.pov.lock().ok().map(|p| self.render_pov(r, i * 30, 0, &p));
         }
+        let style = RBStyle { style: RB_BOLD, fg: Color::White, bg: Color::Black };
+        r.print(5, 16, style, &format!("Move {}▍          ", self.input.iter().cloned().collect::<String>()));
     }
 
     fn name(&self) -> &str {
         &self.name
     }
 
-    fn key_event(&mut self, _key: rustbox::keyboard::Key) -> MenuResult {
+    fn key_event(&mut self, key: Key) -> MenuResult {
+        match key {
+            Key::Enter => {
+                self.handle_input();
+            }
+            Key::Char(x) => {
+                self.input.push(x);
+            }
+            Key::Backspace => {
+                self.input.pop();
+            }
+            _ => ()
+        }
         MenuResult::None
     }
 }
@@ -267,7 +283,17 @@ impl GameView {
             name: name,
             url: url,
             povs: povs,
+            input: vec!(),
         };
+    }
+
+    fn handle_input(&mut self) {
+        if self.input.len() == 4 { // assume move for now
+            let from: String = self.input[0..2].iter().cloned().collect();
+            let to: String = self.input[2..4].iter().cloned().collect();
+            self.povs.get_mut(0).unwrap().send_move(from, to);
+            self.input.clear();
+        }
     }
 
     pub fn render_pov(&self, r: &mut Renderer, x: usize, y: usize, pov: &game::Pov) {
