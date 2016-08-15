@@ -16,6 +16,8 @@ mod game;
 mod ui;
 mod lila;
 
+const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+
 fn main() {
     let session = setup_session("Press Enter for anonymous");
     //setup_logger(matches.is_present("debug"));

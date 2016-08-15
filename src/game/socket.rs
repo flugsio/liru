@@ -110,8 +110,9 @@ impl Handler for Client {
     fn build_request(&mut self, url: &url::Url) -> Result<Request> {
         debug!("Handler is building request from {}.", url);
         let mut r = try!(Request::from_url(url));
-        debug!("Adding header name {}, value {}", "Cookie", format!("{:?}", HeaderFormatter(&self.cookie)));
+        r.headers_mut().push(("User-Agent".to_string(), format!("liru/{}", ::VERSION).into()));
         r.headers_mut().push(("Cookie".to_string(), format!("{:?}", HeaderFormatter(&self.cookie)).into()));
+        debug!("Built request: {:?}", r);
         Ok(r)
     }
 

@@ -124,7 +124,7 @@ impl Session {
                             TopLevel::Application,
                             SubLevel::Ext("vnd.lichess.v1+json".to_owned()),
                             vec![]))]))
-            .header(UserAgent("liru/0.1.1".to_owned()))
+            .header(UserAgent(format!("liru/{}", ::VERSION)))
             .header(ContentType::form_url_encoded())
             .send()
             .unwrap();
@@ -159,6 +159,7 @@ impl Session {
             .header(Connection::close())
             .header(Accept(vec![qitem(Mime(TopLevel::Application, SubLevel::Ext("vnd.lichess.v1+json".to_owned()), vec![]))]))
             .header(Cookie::from_cookie_jar(&self.cjar))
+            .header(UserAgent(format!("liru/{}", ::VERSION)))
             .send()
             .map(|mut res| res.read_to_string(&mut body).ok()).unwrap();
     }
