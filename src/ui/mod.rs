@@ -9,7 +9,6 @@ use rustbox::{RB_BOLD, RB_NORMAL};
 use time::Duration;
 
 use game;
-use game::Orientation;
 use lila;
 
 #[derive(Clone, Copy)]
@@ -20,6 +19,7 @@ struct RBStyle {
 }
 
 trait View {
+    fn tick(&mut self);
     fn name(&self) -> &str;
     fn render(&self, ui: &mut Renderer);
     fn key_event(&mut self, key: rustbox::keyboard::Key) -> MenuResult;
@@ -116,6 +116,7 @@ impl UI {
 
     pub fn start(&mut self) {
         while self.running {
+            self.tick();
             self.render();
             self.poll_keys();
         }
@@ -162,6 +163,10 @@ impl UI {
         }
     }
 
+    pub fn tick(&mut self) {
+        self.views.get_mut(self.current_view).unwrap().tick();
+    }
+
     pub fn render(&mut self) {
         let dark  = RBStyle { style: RB_NORMAL, fg: Color::Blue, bg: Color::Black };
         let light = RBStyle { style: RB_NORMAL, fg: Color::Yellow, bg: Color::Black };
@@ -199,6 +204,9 @@ impl Renderer {
 }
 
 impl View for MenuView {
+    fn tick(&mut self) {
+    }
+
     fn render(&self, r: &mut Renderer) {
         let dark  = RBStyle { style: RB_BOLD, fg: Color::Blue, bg:     Color::Black };
         let light = RBStyle { style: RB_NORMAL, fg: Color::Yellow, bg: Color::Black };
@@ -240,6 +248,14 @@ impl View for MenuView {
 }
 
 impl View for GameView {
+    fn tick(&mut self) {
+        for pov in self.povs.iter() {
+            pov.pov.lock().ok().map(|mut p| {
+                p.tick();
+            });
+        }
+    }
+
     fn render(&self, r: &mut Renderer) {
         for (i, pov) in self.povs.iter().enumerate() {
             pov.pov.lock().ok().map(|p| self.render_pov(r, i * 30, 0, &p));
@@ -300,7 +316,7 @@ impl GameView {
         self.render_player(r, x + 1, y + 2, &pov.opponent);
         self.render_player(r, x + 1, y + 14, &pov.player);
         let fen = pov.game.fen.clone();
-        self.render_fen(r, x, y, fen, pov.orientation() == Orientation::white);
+        self.render_fen(r, x, y, fen, pov.orientation() == game::Color::white);
         match pov.clock {
             Some(ref clock) => {
                 self.render_clock(r, x + 19, y + 3, clock.from(!pov.orientation()));

@@ -8,8 +8,11 @@ use std::sync::mpsc;
 use std::thread;
 
 use rustc_serialize::json;
+use rustc_serialize::Decoder;
 use rustc_serialize::Decodable;
 use uuid::Uuid;
+
+use time;
 
 use lila;
 use lila::Session;
@@ -28,13 +31,13 @@ pub struct Pov {
     pub player: Player,
     pub opponent: Player,
     pub tv: Option<Tv>,
-    pub orientation: Option<Orientation>, 
+    pub orientation: Option<Color>, 
 }
 
 #[allow(non_camel_case_types)]
 #[derive(PartialEq, Eq, Copy, Clone)]
 #[derive(RustcDecodable)]
-pub enum Orientation {
+pub enum Color {
     white,
     black,
 }
@@ -49,6 +52,16 @@ pub struct Tv {
 pub struct Clock {
     pub white: f64,
     pub black: f64,
+    last_update: Time,
+}
+
+// TODO: ehm, maybe not like this
+// wrap to implement trait on foreign type in this version of rust
+pub struct Time(time::Tm);
+impl Decodable for Time {
+    fn decode<D: Decoder>(_d: &mut D) -> Result<Time, D::Error> {
+        Ok(Time(time::now_utc()))
+    }
 }
 
 #[derive(RustcDecodable)]
@@ -72,8 +85,8 @@ pub struct Game {
     pub rated: bool,
     pub initialFen: String,
     pub fen: String,
-    pub player: String,
-    pub turns: i64,
+    pub player: Color,
+    pub turns: u64,
     pub startedAtTurn: i64,
     pub lastMove: Option<String>,
     pub threefold: bool,
@@ -97,7 +110,7 @@ pub struct Status {
 
 #[derive(RustcDecodable)]
 pub struct Player {
-    pub color: Orientation,
+    pub color: Color,
     pub version: Option<i64>,
     pub spectator: Option<bool>,
     pub user: Option<User>,
@@ -140,6 +153,8 @@ impl ConnectedPov {
             match LilaMessage::decode(&obj) {
                 Some(LilaMessage::Move(m)) => {
                     pov.game.fen = m.fen;
+                    pov.game.turns = m.ply;
+                    pov.game.player = if m.ply % 2 == 0 { Color::white } else { Color::black };
                     if let Some(c) = m.clock {
                         pov.clock = Some(c);
                     };
@@ -172,7 +187,7 @@ impl ConnectedPov {
 }
 
 impl Pov {
-    pub fn orientation(&self) -> Orientation {
+    pub fn orientation(&self) -> Color {
         match self.orientation {
             Some(o) => o,
             None => {
@@ -180,26 +195,43 @@ impl Pov {
             }
         }
     }
+
+    pub fn tick(&mut self) {
+        // FUTURE: `let` is only needed bc rust borrow checker is lazy
+        let color = self.game.player;
+        self.clock.as_mut().map(|c| c.tick(color));
+    }
 }
 
-impl Not for Orientation {
-    type Output = Orientation;
-    fn not(self) -> Orientation {
-        if self == Orientation::white {
-            Orientation::black
+impl Not for Color {
+    type Output = Color;
+    fn not(self) -> Color {
+        if self == Color::white {
+            Color::black
         } else {
-            Orientation::white
+            Color::white
         }
     }
 }
 
 impl Clock {
-    pub fn from(&self, orientation: Orientation) -> f64 {
-        if orientation == Orientation::white {
-            self.white
-        } else {
-            self.black
+    pub fn from(&self, color: Color) -> f64 {
+        match color {
+            Color::white => self.white,
+            Color::black => self.black,
         }
+    }
+    
+    pub fn tick(&mut self, color: Color) {
+        let now = time::now_utc();
+        let Time(updated) = self.last_update;
+        let passed = ((now - updated).num_milliseconds() as f64) / 1000.0;
+        self.last_update = Time(now);
+        match color {
+            // TODO: only tick when gameIsRunning instead of using max
+            Color::white => self.white = (self.white - passed).max(0.0),
+            Color::black => self.black = (self.black - passed).max(0.0),
+        };
     }
 }
 
@@ -240,6 +272,7 @@ impl LilaMessage {
 struct Move {
     clock: Option<Clock>,
     fen: String,
+    ply: u64,
 }
 
 #[allow(dead_code)]
