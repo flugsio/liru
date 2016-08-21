@@ -3,7 +3,6 @@ extern crate ws;
 use std::rc::Rc;
 use std::cell::Cell;
 use std::sync::mpsc;
-use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
 
 use std::thread;
@@ -30,7 +29,7 @@ struct PingPacket {
 impl PingPacket {
     pub fn new(version: u64) -> PingPacket {
         PingPacket {
-            t: "p".to_string(),
+            t: "p".into(),
             v: version
         }
     }
@@ -44,7 +43,7 @@ impl PingPacket {
 pub struct Client {
     out: Sender,
     version: Rc<Cell<u64>>,
-    game_tx: mpsc::Sender<BTreeMap<String, json::Json>>,
+    game_tx: mpsc::Sender<json::Object>,
     last_ping: time::Tm,
     cookie: Cookie,
 }
@@ -66,9 +65,9 @@ impl Handler for Client {
                     let latency = time::now_utc() - self.last_ping;
                     // this mess changes {"t":"n"} to {"t":"n","d":{"latency":30}}
                     let mut data = json::Object::new();
-                    data.insert("latency".to_string(), Json::I64(latency.num_milliseconds()));
+                    data.insert("latency".into(), Json::I64(latency.num_milliseconds()));
                     let mut pong = obj.clone();
-                    pong.insert("d".to_string(), Json::Object(data));
+                    pong.insert("d".into(), Json::Object(data));
                     self.on_handle(&pong);
                     self.out.timeout(2000, PING).unwrap();
                 }
@@ -114,8 +113,8 @@ impl Handler for Client {
     fn build_request(&mut self, url: &url::Url) -> Result<Request> {
         debug!("Handler is building request from {}.", url);
         let mut r = try!(Request::from_url(url));
-        r.headers_mut().push(("User-Agent".to_string(), format!("liru/{}", ::VERSION).into()));
-        r.headers_mut().push(("Cookie".to_string(), format!("{:?}", HeaderFormatter(&self.cookie)).into()));
+        r.headers_mut().push(("User-Agent".into(), format!("liru/{}", ::VERSION).into()));
+        r.headers_mut().push(("Cookie".into(), format!("{:?}", HeaderFormatter(&self.cookie)).into()));
         debug!("Built request: {:?}", r);
         Ok(r)
     }
@@ -124,7 +123,7 @@ impl Handler for Client {
 
 impl Client {
     pub fn connect(c: &Cookie, url: String, version: u64,
-                   game_tx: mpsc::Sender<BTreeMap<String, json::Json>>,
+                   game_tx: mpsc::Sender<json::Object>,
                    send_rx: Arc<Mutex<mpsc::Receiver<String>>>) {
         debug!("connecting to: {}", url.clone());
         let v = Rc::new(Cell::new(version));
@@ -152,7 +151,7 @@ impl Client {
         }).unwrap();
     }
 
-    fn on_handle(&mut self, obj: &BTreeMap<String, json::Json>) {
+    fn on_handle(&mut self, obj: &json::Object) {
         if let Some(v) = obj.get("v").and_then(|v| v.as_u64()) {
             let current = self.version.get();
             if v <= current {

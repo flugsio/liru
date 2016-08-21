@@ -1,7 +1,5 @@
 pub mod socket;
 
-use std::collections::BTreeMap;
-
 use std::ops::Not;
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc;
@@ -203,7 +201,7 @@ impl ConnectedPov {
 
     pub fn send_move(&mut self, from: String, to: String) {
         let move_packet = MovePacket {
-            t: "move".to_string(),
+            t: "move".into(),
             l: None, // TODO
             d: Dest {
                 from: from,
@@ -272,7 +270,7 @@ enum LilaMessage {
 }
 
 impl LilaMessage {
-    fn decode(obj: &BTreeMap<String, json::Json>) -> Option<LilaMessage> {
+    fn decode(obj: &json::Object) -> Option<LilaMessage> {
         fn decode<T: Decodable>(data: &json::Json) -> Option<T> {
             let mut decoder = json::Decoder::new(data.to_owned());
             Decodable::decode(&mut decoder)

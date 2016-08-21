@@ -77,19 +77,19 @@ impl UI {
             menu_options.push(MenuOption::WatchTv { name: game.gameId.clone(), url: game.fullId.clone() });
         }
 
-        menu_options.push(MenuOption::WatchTv { name: "Best".to_string(), url: "tv/best".to_string() });
-        menu_options.push(MenuOption::WatchTv { name: "Bullet".to_string(), url: "tv/bullet".to_string() });
-        menu_options.push(MenuOption::WatchTv { name: "Blitz".to_string(), url: "tv/blitz".to_string() });
-        menu_options.push(MenuOption::WatchTv { name: "Classical".to_string(), url: "tv/classical".to_string() });
-        menu_options.push(MenuOption::WatchTv { name: "Crazyhouse".to_string(), url: "tv/crazyhouse".to_string() });
-        menu_options.push(MenuOption::WatchTv { name: "Chess 960".to_string(), url: "tv/chess960".to_string() });
-        menu_options.push(MenuOption::WatchTv { name: "King of the Hill".to_string(), url: "tv/kingOfTheHill".to_string() });
-        menu_options.push(MenuOption::WatchTv { name: "Three-Check".to_string(), url: "tv/threeCheck".to_string() });
-        menu_options.push(MenuOption::WatchTv { name: "Antichess".to_string(), url: "tv/antichess".to_string() });
-        menu_options.push(MenuOption::WatchTv { name: "Atomic".to_string(), url: "tv/atomic".to_string() });
-        menu_options.push(MenuOption::WatchTv { name: "Horde".to_string(), url: "tv/horde".to_string() });
-        menu_options.push(MenuOption::WatchTv { name: "Racing Kings".to_string(), url: "tv/racingKings".to_string() });
-        menu_options.push(MenuOption::WatchTv { name: "Computer".to_string(), url: "tv/computer".to_string() });
+        menu_options.push(MenuOption::WatchTv { name: "Best".into(), url: "tv/best".into() });
+        menu_options.push(MenuOption::WatchTv { name: "Bullet".into(), url: "tv/bullet".into() });
+        menu_options.push(MenuOption::WatchTv { name: "Blitz".into(), url: "tv/blitz".into() });
+        menu_options.push(MenuOption::WatchTv { name: "Classical".into(), url: "tv/classical".into() });
+        menu_options.push(MenuOption::WatchTv { name: "Crazyhouse".into(), url: "tv/crazyhouse".into() });
+        menu_options.push(MenuOption::WatchTv { name: "Chess 960".into(), url: "tv/chess960".into() });
+        menu_options.push(MenuOption::WatchTv { name: "King of the Hill".into(), url: "tv/kingOfTheHill".into() });
+        menu_options.push(MenuOption::WatchTv { name: "Three-Check".into(), url: "tv/threeCheck".into() });
+        menu_options.push(MenuOption::WatchTv { name: "Antichess".into(), url: "tv/antichess".into() });
+        menu_options.push(MenuOption::WatchTv { name: "Atomic".into(), url: "tv/atomic".into() });
+        menu_options.push(MenuOption::WatchTv { name: "Horde".into(), url: "tv/horde".into() });
+        menu_options.push(MenuOption::WatchTv { name: "Racing Kings".into(), url: "tv/racingKings".into() });
+        menu_options.push(MenuOption::WatchTv { name: "Computer".into(), url: "tv/computer".into() });
 
         views.push(Box::new(MenuView {
             menu_options: menu_options,
