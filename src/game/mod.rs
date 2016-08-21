@@ -17,8 +17,29 @@ use time;
 use lila;
 use lila::Session;
 
+pub struct LatencyRecorder {
+    pub last: i64,
+    history: Vec<i64>,
+}
+
+impl LatencyRecorder {
+    pub fn new() -> LatencyRecorder {
+        LatencyRecorder {
+            last: 0,
+            history: vec!(),
+        }
+    }
+
+    pub fn add(&mut self, latency: i64) {
+        self.last = latency;
+        self.history.push(latency);
+    }
+}
+
+
 pub struct ConnectedPov {
     pub pov: Arc<Mutex<Pov>>,
+    pub latency: Arc<Mutex<LatencyRecorder>>,
     send_tx: mpsc::Sender<String>,
 }
 
@@ -147,10 +168,16 @@ impl ConnectedPov {
         thread::spawn(move || {
             socket::Client::connect(&c, url.clone(), version, game_tx.clone(), send_rx);
         });
+
+        let latency_1 = Arc::new(Mutex::new(LatencyRecorder::new()));
+        let latency_2 = latency_1.clone();
         thread::spawn(move || loop {
             let obj = game_rx.recv().unwrap();
             let mut pov = pov_2.lock().unwrap();
             match LilaMessage::decode(&obj) {
+                Some(LilaMessage::Pong(p)) => {
+                    latency_2.lock().unwrap().add(p.latency);
+                },
                 Some(LilaMessage::Move(m)) => {
                     pov.game.fen = m.fen;
                     pov.game.turns = m.ply;
@@ -169,6 +196,7 @@ impl ConnectedPov {
 
         ConnectedPov {
             pov: pov_1,
+            latency: latency_1,
             send_tx: send_tx,
         }
     }
@@ -176,9 +204,11 @@ impl ConnectedPov {
     pub fn send_move(&mut self, from: String, to: String) {
         let move_packet = MovePacket {
             t: "move".to_string(),
+            l: None, // TODO
             d: Dest {
                 from: from,
                 to: to,
+                promotion: None,
             },
         };
         let message = json::encode(&move_packet).unwrap();
@@ -236,6 +266,7 @@ impl Clock {
 }
 
 enum LilaMessage {
+    Pong(Pong),
     Move(Move),
     Clock(Clock),
 }
@@ -253,6 +284,7 @@ impl LilaMessage {
             // following_enters, following_leaves, following_onlines,
             // following_playing, following_stopped_plaing,
             // message, analysisProgress, reload, and more
+            (Some("n"), Some(data)) => decode(data).map(|d| LilaMessage::Pong(d)),
             (Some("move"), Some(data)) => decode(data).map(|d| LilaMessage::Move(d)),
             (Some("clock"), Some(data)) => decode(data).map(|d| LilaMessage::Clock(d)),
             (Some(ref t), d) => {
@@ -269,24 +301,28 @@ impl LilaMessage {
 }
 
 #[derive(RustcDecodable)]
+struct Pong {
+    latency: i64,
+}
+
+#[derive(RustcDecodable)]
 struct Move {
     clock: Option<Clock>,
     fen: String,
     ply: u64,
 }
 
-#[allow(dead_code)]
 #[derive(RustcEncodable)]
 pub struct MovePacket {
     t: String,
     d: Dest,
+    l: Option<i64>,
 }
 
-#[allow(dead_code)]
 #[derive(RustcEncodable)]
 pub struct Dest {
     pub from: String,
     pub to: String,
-    // pub: i8, // bool, but 0 or 1
+    pub promotion: Option<String>,
 }
 

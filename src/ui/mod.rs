@@ -259,6 +259,7 @@ impl View for GameView {
     fn render(&self, r: &mut Renderer) {
         for (i, pov) in self.povs.iter().enumerate() {
             pov.pov.lock().ok().map(|p| self.render_pov(r, i * 30, 0, &p));
+            pov.latency.lock().ok().map(|l| self.render_latency(r, i * 30, 0, &l));
         }
         let style = RBStyle { style: RB_BOLD, fg: Color::White, bg: Color::Black };
         r.print(5, 16, style, &format!("Move {}▍          ", self.input.iter().cloned().collect::<String>()));
@@ -310,6 +311,11 @@ impl GameView {
             self.povs.get_mut(0).unwrap().send_move(from, to);
             self.input.clear();
         }
+    }
+
+    pub fn render_latency(&self, r: &mut Renderer, x: usize, y: usize, latency: &game::LatencyRecorder) {
+        let style = RBStyle { style: RB_NORMAL, fg: Color::Cyan, bg: Color::Black };
+        r.print(x, y+13, style, &format!("{:3}ms", latency.last));
     }
 
     pub fn render_pov(&self, r: &mut Renderer, x: usize, y: usize, pov: &game::Pov) {

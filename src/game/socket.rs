@@ -45,7 +45,7 @@ pub struct Client {
     out: Sender,
     version: Rc<Cell<u64>>,
     game_tx: mpsc::Sender<BTreeMap<String, json::Json>>,
-    last_ping: Rc<Cell<time::Tm>>,
+    last_ping: time::Tm,
     cookie: Cookie,
 }
 
@@ -62,8 +62,14 @@ impl Handler for Client {
         if json.is_object() {
             let obj = json.as_object().unwrap();
             match obj.get("t").and_then(|t| t.as_string()) {
-                Some("n") => { // pong
-                    debug!("Ping time: {}", time::now_utc()-self.last_ping.get());
+                Some("n") => { // pong, inject travel time
+                    let latency = time::now_utc() - self.last_ping;
+                    // this mess changes {"t":"n"} to {"t":"n","d":{"latency":30}}
+                    let mut data = json::Object::new();
+                    data.insert("latency".to_string(), Json::I64(latency.num_milliseconds()));
+                    let mut pong = obj.clone();
+                    pong.insert("d".to_string(), Json::Object(data));
+                    self.on_handle(&pong);
                     self.out.timeout(2000, PING).unwrap();
                 }
                 Some("b") => { // batch
@@ -82,10 +88,8 @@ impl Handler for Client {
     fn on_timeout(&mut self, event: Token) -> Result<()> {
         match event {
             PING => {
-                //try!(self.out.ping(time::precise_time_ns().to_string().into()));
                 let ping = PingPacket::new(self.version.get()).to_message();
-                debug!("sending: {}", ping.clone());
-                self.last_ping.set(time::now_utc());
+                self.last_ping = time::now_utc();
                 self.out.send(ping)
             }
             _ => Ok(error!("Invalid timeout token encountered!")),
@@ -124,7 +128,6 @@ impl Client {
                    send_rx: Arc<Mutex<mpsc::Receiver<String>>>) {
         debug!("connecting to: {}", url.clone());
         let v = Rc::new(Cell::new(version));
-        let last_ping = Rc::new(Cell::new(time::now_utc()));
 
         ws::connect(url.to_owned(), |out| {
             {
@@ -143,7 +146,7 @@ impl Client {
                 out: out.clone(),
                 version: v.clone(),
                 game_tx: game_tx.clone(),
-                last_ping: last_ping.clone(),
+                last_ping: time::now_utc(),
                 cookie: c.clone(),
             }
         }).unwrap();
