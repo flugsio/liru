@@ -1,4 +1,5 @@
 pub mod socket;
+pub mod latency_recorder;
 
 use std::ops::Not;
 use std::sync::{Arc, Mutex};
@@ -15,25 +16,7 @@ use time;
 use lila;
 use lila::Session;
 
-pub struct LatencyRecorder {
-    pub last: i64,
-    history: Vec<i64>,
-}
-
-impl LatencyRecorder {
-    pub fn new() -> LatencyRecorder {
-        LatencyRecorder {
-            last: 0,
-            history: vec!(),
-        }
-    }
-
-    pub fn add(&mut self, latency: i64) {
-        self.last = latency;
-        self.history.push(latency);
-    }
-}
-
+pub use game::latency_recorder::LatencyRecorder;
 
 pub struct ConnectedPov {
     pub pov: Arc<Mutex<Pov>>,
@@ -234,10 +217,9 @@ impl Pov {
 impl Not for Color {
     type Output = Color;
     fn not(self) -> Color {
-        if self == Color::white {
-            Color::black
-        } else {
-            Color::white
+        match self {
+            Color::white => Color::black,
+            Color::black => Color::white,
         }
     }
 }
@@ -303,10 +285,15 @@ struct Pong {
     latency: i64,
 }
 
+#[allow(dead_code)]
 #[derive(RustcDecodable)]
 struct Move {
     clock: Option<Clock>,
+    // "dests": Object({"a6": String("a5"), "c7": String("b8d8b6a5d6e5f4g3h2"), "d5": String("c6e6"), "f5": String("f4")}),
+    dests: String,
     fen: String,
+    san: String, // Bc7
+    uci: String, // e5c7
     ply: u64,
 }
 
