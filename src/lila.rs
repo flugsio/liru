@@ -68,13 +68,17 @@ pub struct PlayingGame {
     //speed: correspondence,
     //perf: crazyhouse,
     //rated: false,
-    //opponent: {
-    //    id:test,
-    //    username: test,
-    //    rating: 1500
-    //},
-    //isMyTurn: true,
-    //secondsLeft: 120613
+    pub opponent: PlayingOpponent,
+    //pub isMyTurn: bool,
+    //pub secondsLeft: i64,
+}
+
+#[allow(non_snake_case)]
+#[derive(RustcDecodable)]
+pub struct PlayingOpponent {
+    pub id: Option<String>,
+    pub username: String,
+    pub rating: Option<i64>,
 }
 
 impl Session {

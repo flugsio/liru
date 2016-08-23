@@ -74,7 +74,7 @@ impl UI {
         let mut menu_options = Vec::new();
 
         for game in &session.user.nowPlaying {
-            menu_options.push(MenuOption::WatchTv { name: game.gameId.clone(), url: game.fullId.clone() });
+            menu_options.push(MenuOption::WatchTv { name: game.opponent.username.clone(), url: game.fullId.clone() });
         }
 
         menu_options.push(MenuOption::WatchTv { name: "Best".into(), url: "tv/best".into() });

@@ -14,7 +14,7 @@ cargo run --release
 For autologin while developing, use something like this:
 
 ```
-cargo build && echo "flugsio\n$(pass lichess.org)" | cargo run 2> stdout.log
+cargo build && echo "flugsio\n$(pass lichess.org)" | RUST_BACKTRACE=1 cargo run 2> stdout.log
 ```
 
 I recommend [pass](https://www.passwordstore.org/) if you don't already have a password manager.
