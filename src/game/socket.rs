@@ -51,7 +51,7 @@ pub struct Client {
 impl Handler for Client {
 
     fn on_open(&mut self, _: Handshake) -> Result<()> {
-        self.out.timeout(2000, PING)
+        self.out.timeout(10, PING)
     }
 
     fn on_message(&mut self, msg: Message) -> Result<()> {

@@ -315,7 +315,7 @@ impl GameView {
 
     pub fn render_latency(&self, r: &mut Renderer, x: usize, y: usize, latency: &game::LatencyRecorder) {
         let style = RBStyle { style: RB_NORMAL, fg: Color::Cyan, bg: Color::Black };
-        r.print(x, y+13, style, &format!("{:3}ms", latency.last));
+        r.print(x, y+13, style, &format!("{:3}ms", latency.average()));
     }
 
     pub fn render_pov(&self, r: &mut Renderer, x: usize, y: usize, pov: &game::Pov) {
