@@ -290,7 +290,7 @@ struct Pong {
 struct Move {
     clock: Option<Clock>,
     // "dests": Object({"a6": String("a5"), "c7": String("b8d8b6a5d6e5f4g3h2"), "d5": String("c6e6"), "f5": String("f4")}),
-    dests: String,
+    //dests: String,
     fen: String,
     san: String, // Bc7
     uci: String, // e5c7
