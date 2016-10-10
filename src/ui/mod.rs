@@ -6,7 +6,7 @@ use rustbox::{Color, RustBox};
 use rustbox::Key;
 use rustbox::{RB_BOLD, RB_NORMAL};
 
-use time::Duration;
+use std::time::Duration;
 
 use game;
 use lila;
@@ -141,13 +141,13 @@ impl UI {
     }
 
     pub fn poll_keys(&mut self) {
-        match self.renderer.rb.peek_event(Duration::milliseconds(100), false) {
+        match self.renderer.rb.peek_event(Duration::from_millis(100), false) {
             Ok(rustbox::Event::KeyEvent(key)) => {
                 match key {
-                    Some(Key::Char('q')) => self.running = false,
-                    Some(Key::Left) => self.prev_view(),
-                    Some(Key::Right) => self.next_view(),
-                    Some(key) => {
+                    Key::Char('q') => self.running = false,
+                    Key::Left => self.prev_view(),
+                    Key::Right => self.next_view(),
+                    key => {
                         match self.current_view().key_event(key) {
                             MenuResult::AddGameView { name, url } => {
                                 self.add_game(name, url);
@@ -155,7 +155,6 @@ impl UI {
                             MenuResult::None => {},
                         }
                     }
-                    _ => {}
                 }
             },
             Err(e) => panic!("{}", e),

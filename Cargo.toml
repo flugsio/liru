@@ -9,7 +9,7 @@ fern = "0.3.5"
 uuid = { version = "0.3.1", features = ["v4"] }
 ws = { git = "https://github.com/housleyjk/ws-rs", rev = "222143a53e", features = ["ssl"] } # FIXME: update, latest stable for now because 0.5.3 is bugged with IPv6
 rustc-serialize = "0.3.19"
-rustbox = "0.7"
+rustbox = "0.9.0"
 time = "0.1.35"
 hyper = "0.9.10"
 url = "1.2.1"
