@@ -23,6 +23,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 ### Added
  - Changelog
 
+## Fixed
+ - IPv6 incompability
+
 ## [0.1.2] - 2016-08-23
 ### Added
  - Readme
