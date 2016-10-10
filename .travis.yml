@@ -12,4 +12,7 @@ matrix:
   include:
     - rust: stable
       os: osx
+      env:
+        - OPENSSL_INCLUDE_DIR=/usr/local/opt/openssl/include
+        - DEP_OPENSSL_INCLUDE=/usr/local/opt/openssl/include
 
