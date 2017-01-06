@@ -91,7 +91,7 @@ pub struct Game {
     pub turns: u64,
     pub startedAtTurn: i64,
     pub lastMove: Option<String>,
-    pub threefold: bool,
+    pub threefold: Option<bool>,
     pub source: String,
     pub status: Status,
 }
@@ -101,7 +101,6 @@ pub struct Variant {
     pub key: String,
     pub name: String,
     pub short: String,
-    pub title: String,
 }
 
 #[derive(RustcDecodable)]
