@@ -10,6 +10,7 @@ use std::time::Duration;
 
 use game;
 use lila;
+use uci_move::UciMove;
 
 #[derive(Clone, Copy)]
 struct RBStyle {
@@ -321,7 +322,8 @@ impl GameView {
         self.render_player(r, x + 1, y + 2, &pov.opponent);
         self.render_player(r, x + 1, y + 14, &pov.player);
         let fen = pov.game.fen.clone();
-        self.render_fen(r, x, y, fen, pov.orientation() == game::Color::white);
+        let last_move = UciMove::parse_move(pov.game.lastMove.clone().unwrap_or(format!("")));
+        self.render_fen(r, x, y, fen, last_move, pov.orientation() == game::Color::white);
         match pov.clock {
             Some(ref clock) => {
                 self.render_clock(r, x + 19, y + 3, clock.from(!pov.orientation()));
@@ -346,7 +348,7 @@ impl GameView {
         r.print(x, y, RBStyle { style: RB_BOLD, fg: if time < 10f64 { Color::Red } else { Color::White }, bg: Color::Black }, &format!("{:04.1}", time));
     }
 
-    pub fn render_fen(&self, r: &mut Renderer, x: usize, y: usize, fen: String, orientation: bool) {
+    pub fn render_fen(&self, r: &mut Renderer, x: usize, y: usize, fen: String, last_move: UciMove, orientation: bool) {
         let _text_style  = RBStyle { style: RB_BOLD, fg: Color::White, bg:    Color::Black };
         let border      = RBStyle { style: RB_NORMAL, fg: Color::Cyan, bg:   Color::Black };
         let piece_dark  = RBStyle { style: RB_BOLD, fg: Color::Blue, bg:     Color::Black };

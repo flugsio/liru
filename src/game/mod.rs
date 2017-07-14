@@ -160,6 +160,7 @@ impl ConnectedPov {
                     latency_2.lock().unwrap().add(p.latency);
                 },
                 Some(LilaMessage::Move(m)) => {
+                    pov.game.lastMove = Some(m.uci); // TODO: crazyhouse
                     pov.game.fen = m.fen;
                     pov.game.turns = m.ply;
                     pov.game.player = if m.ply % 2 == 0 { Color::white } else { Color::black };

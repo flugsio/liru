@@ -15,6 +15,7 @@ use std::io::Write;
 mod game;
 mod ui;
 mod lila;
+mod uci_move;
 
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
