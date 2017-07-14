@@ -1,0 +1,113 @@
+<h1>Change Log</h1>
+
+<p>All notable changes to this project will be documented in this file.</p>
+
+<p>The format is based on <a href="http://keepachangelog.com/">Keep a Changelog</a> </p>
+
+<!---
+## [Template]
+### Added
+ - for new features.
+### Changed
+ - for changes in existing functionality.
+### Deprecated
+ - for once-stable features removed in upcoming releases.
+### Removed
+ - for deprecated features removed in this release.
+### Fixed
+ - for any bug fixes.
+### Security 
+ - to invite users to upgrade in case of vulnerabilities.
+-->
+
+<h2><a href="https://github.com/flugsio/liru/compare/v0.1.2...HEAD">Unreleased</a></h2>
+
+<h3>Added</h3>
+
+<ul>
+<li>Changelog</li>
+</ul>
+
+<h2><a href="https://github.com/flugsio/liru/compare/v0.1.1...v0.1.2">0.1.2</a> - 2016-08-23</h2>
+
+<h3>Added</h3>
+
+<ul>
+<li>Readme</li>
+<li>Show latency in the interface</li>
+<li>Travis integration for testing in different rust versions</li>
+<li>Clock countdown between move updates</li>
+<li>Ability to make moves in games
+
+<ul>
+<li>Only supports four character coordinates like e2e4</li>
+</ul></li>
+</ul>
+
+<h3>Changed hello</h3>
+
+<ul>
+<li>Display opponent name in games list instead of id</li>
+</ul>
+
+<h2>Fixed</h2>
+
+<ul>
+<li>Sending the correct useragent everywhere</li>
+<li>Real fix for latency, now 30ms as expected from here
+
+<ul>
+<li>Replaced crate rust-websocket, using ws instead</li>
+</ul></li>
+</ul>
+
+<h2><a href="https://github.com/flugsio/liru/compare/v0.1.0...v0.1.1">0.1.1</a> - 2016-08-10</h2>
+
+<h3>Added</h3>
+
+<ul>
+<li>Internal ping measuring (sends it to logfile)</li>
+<li>Handling of socket message versions</li>
+<li>Logging to file with correct log levels, stdout is used for rendering</li>
+<li>Session handling
+
+<ul>
+<li>Menu lists your current games if logged into a named account</li>
+<li>Username/password is entered from stdin</li>
+<li>Can use anonymous with blank username</li>
+</ul></li>
+<li>Menu for opening multiple tv:s
+
+<ul>
+<li>All the different tv chanlles can now be accessed without recompiling</li>
+</ul></li>
+</ul>
+
+<h3>Fixed</h3>
+
+<ul>
+<li>One issue with the latency
+
+<ul>
+<li>Real ping is 30ms, but liru got 100ms, now 70ms by using <code>set_nodelay(true)</code></li>
+</ul></li>
+<li>Board orientation, pieces and clock on correct side</li>
+<li>Decode error, moves is not available anymore</li>
+<li>All compile warnings</li>
+</ul>
+
+<h2><a href="https://github.com/flugsio/liru/compare/a1443b908a...v0.1.0">0.1.0</a> - 2015-07-13</h2>
+
+<h3>Added</h3>
+
+<ul>
+<li>Keyboard shortcut to quit: q</li>
+<li>Render player name and rating on game</li>
+<li>Render clock updates on moves</li>
+<li>Simple watch mode, where you can follow moves live
+
+<ul>
+<li>Hardcoded game/tv url, recompile to watch something else</li>
+</ul></li>
+<li>MIT license</li>
+</ul>
