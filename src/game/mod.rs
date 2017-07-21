@@ -126,8 +126,7 @@ pub struct User {
 
 impl ConnectedPov {
     pub fn new(session: &lila::Session, path: &str) -> ConnectedPov {
-        let mut body = String::new();
-        session.get(path, &mut body);
+        let body = session.get(path);
         debug!("GET response: {}", body);
         let pov: Pov = json::decode(&body).unwrap();
         let version = match pov.player.version {

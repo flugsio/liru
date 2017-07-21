@@ -7,7 +7,7 @@ use std::sync::{Arc, Mutex};
 
 use std::thread;
 
-use hyper::header::{HeaderFormatter, Cookie};
+use hyper::header::{Cookie};
 
 use time;
 
@@ -114,7 +114,7 @@ impl Handler for Client {
         debug!("Handler is building request from {}.", url);
         let mut r = try!(Request::from_url(url));
         r.headers_mut().push(("User-Agent".into(), format!("liru/{}", ::VERSION).into()));
-        r.headers_mut().push(("Cookie".into(), format!("{:?}", HeaderFormatter(&self.cookie)).into()));
+        r.headers_mut().push(("Cookie".into(), format!("{:?}", self.cookie).into()));
         debug!("Built request: {:?}", r);
         Ok(r)
     }

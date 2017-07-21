@@ -20,11 +20,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 -->
 
 ## [Unreleased]
+
+## [0.1.3] - 2017-07-21
 ### Added
  - Changelog
+ - Updated dependencies (supports new ssl version)
 
 ## Fixed
  - IPv6 incompability
+ - Sign in (optional prov field)
 
 ## [0.1.2] - 2016-08-23
 ### Added
@@ -72,7 +76,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
  - MIT license
 
 
-[Unreleased]: https://github.com/flugsio/liru/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/flugsio/liru/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/flugsio/liru/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/flugsio/liru/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/flugsio/liru/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/flugsio/liru/compare/a1443b908a...v0.1.0
