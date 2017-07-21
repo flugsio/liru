@@ -57,24 +57,23 @@ fn acquire(what: &str) -> String {
 
 // levels: trace, debug, info, warn, error
 fn setup_logger(debug: bool) {
-    let output = vec![fern::OutputConfig::file("./liru.log")];
     let level = match debug {
         true  => log::LogLevelFilter::Debug,
         false => log::LogLevelFilter::Warn,
     };
 
-    let config = fern::DispatchConfig {
-        format: Box::new(|msg, level, location| {
+    fern::Dispatch::new()
+        .format(|out, message, record| {
             let now = time::now_utc();
-            format!("{}.{}Z [{}] [{}] {}",
-                    now.strftime("%Y-%m-%dT%H:%M:%S").unwrap(), now.tm_nsec,
-                    level, location.module_path(), msg)
-        }),
-        output: output,
-        level: level,
-    };
-
-    if let Err(e) = fern::init_global_logger(config, log::LogLevelFilter::Trace) {
-        println!("Failed to initialize global logger: {}", e);
-    };
+            out.finish(format_args!(
+                    "{}.{}Z [{}] [{}] {}",
+                    now.strftime("%Y-%m-%dT%H:%M:%S").unwrap(),
+                    now.tm_nsec,
+                    record.level(),
+                    record.target(),
+                    message))
+        })
+        .level(level)
+        .chain(fern::log_file("./liru.log").unwrap())
+        .apply().unwrap();
 }
