@@ -22,10 +22,10 @@ mod lila;
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
 fn main() {
-    let session = setup_session("Press Enter for anonymous");
     //setup_logger(matches.is_present("debug"));
     setup_logger(true);
     debug!("Init");
+    let session = setup_session("Press Enter for anonymous");
     let mut ui = ui::UI::new(session);
     ui.start();
     debug!("Exit");
