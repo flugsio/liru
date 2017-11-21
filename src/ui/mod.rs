@@ -39,7 +39,7 @@ struct GameView {
     name: String,
     #[allow(dead_code)]
     url: String,
-    povs: Vec<game::ConnectedPov>,
+    pov: game::ConnectedPov,
     input: Vec<char>,
 }
 
@@ -248,18 +248,14 @@ impl View for MenuView {
 
 impl View for GameView {
     fn tick(&mut self) {
-        for pov in self.povs.iter() {
-            pov.pov.lock().ok().map(|mut p| {
-                p.tick();
-            });
-        }
+        self.pov.pov.lock().ok().map(|mut p| {
+            p.tick();
+        });
     }
 
     fn render(&self, r: &mut Renderer) {
-        for (i, pov) in self.povs.iter().enumerate() {
-            pov.pov.lock().ok().map(|p| self.render_pov(r, i * 30, 0, &p));
-            pov.latency.lock().ok().map(|l| self.render_latency(r, i * 30, 0, &l));
-        }
+        self.pov.pov.lock().ok().map(|p| self.render_pov(r, 0, 0, &p));
+        self.pov.latency.lock().ok().map(|l| self.render_latency(r, 0, 0, &l));
         let style = RBStyle { style: RB_BOLD, fg: Color::White, bg: Color::Black };
         r.print(5, 16, style, &format!("Move {}▍          ", self.input.iter().cloned().collect::<String>()));
     }
@@ -290,15 +286,12 @@ impl MenuView {
 
 impl GameView {
     pub fn new(session: &lila::Session, name: String, url: String) -> GameView {
-        let mut povs = Vec::new();
-
         let connected_pov = game::ConnectedPov::new(session, &url);
-        povs.push(connected_pov);
 
         return GameView {
             name: name,
             url: url,
-            povs: povs,
+            pov: connected_pov,
             input: vec!(),
         };
     }
@@ -307,7 +300,7 @@ impl GameView {
         if self.input.len() == 4 { // assume move for now
             let from: String = self.input[0..2].iter().cloned().collect();
             let to: String = self.input[2..4].iter().cloned().collect();
-            self.povs.get_mut(0).unwrap().send_move(from, to);
+            self.pov.send_move(from, to);
             self.input.clear();
         }
     }
