@@ -1,8 +1,8 @@
 pub mod socket;
 pub mod latency_recorder;
 pub mod clock;
+pub mod color;
 
-use std::ops::Not;
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc;
 use std::thread;
@@ -16,6 +16,7 @@ use lila::Session;
 
 pub use game::latency_recorder::LatencyRecorder;
 pub use game::clock::Clock;
+pub use game::color::Color;
 
 pub struct ConnectedPov {
     pub pov: Arc<Mutex<Pov>>,
@@ -33,14 +34,6 @@ pub struct Pov {
     pub opponent: Player,
     pub tv: Option<Tv>,
     pub orientation: Option<Color>, 
-}
-
-#[allow(non_camel_case_types)]
-#[derive(PartialEq, Eq, Copy, Clone)]
-#[derive(RustcDecodable)]
-pub enum Color {
-    white,
-    black,
 }
 
 #[derive(RustcDecodable)]
@@ -192,16 +185,6 @@ impl Pov {
         // FUTURE: `let` is only needed bc rust borrow checker is lazy
         let color = self.game.player;
         self.clock.as_mut().map(|c| c.tick(color));
-    }
-}
-
-impl Not for Color {
-    type Output = Color;
-    fn not(self) -> Color {
-        match self {
-            Color::white => Color::black,
-            Color::black => Color::white,
-        }
     }
 }
 
