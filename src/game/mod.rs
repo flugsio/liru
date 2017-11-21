@@ -1,5 +1,6 @@
 pub mod socket;
 pub mod latency_recorder;
+pub mod clock;
 
 use std::ops::Not;
 use std::sync::{Arc, Mutex};
@@ -7,16 +8,14 @@ use std::sync::mpsc;
 use std::thread;
 
 use rustc_serialize::json;
-use rustc_serialize::Decoder;
 use rustc_serialize::Decodable;
 use uuid::Uuid;
-
-use time;
 
 use lila;
 use lila::Session;
 
 pub use game::latency_recorder::LatencyRecorder;
+pub use game::clock::Clock;
 
 pub struct ConnectedPov {
     pub pov: Arc<Mutex<Pov>>,
@@ -48,22 +47,6 @@ pub enum Color {
 pub struct Tv {
     pub channel: String,
     pub flip: bool,
-}
-
-#[derive(RustcDecodable)]
-pub struct Clock {
-    pub white: f64,
-    pub black: f64,
-    last_update: Time,
-}
-
-// TODO: ehm, maybe not like this
-// wrap to implement trait on foreign type in this version of rust
-pub struct Time(time::Tm);
-impl Decodable for Time {
-    fn decode<D: Decoder>(_d: &mut D) -> Result<Time, D::Error> {
-        Ok(Time(time::now_utc()))
-    }
 }
 
 #[derive(RustcDecodable)]
@@ -219,27 +202,6 @@ impl Not for Color {
             Color::white => Color::black,
             Color::black => Color::white,
         }
-    }
-}
-
-impl Clock {
-    pub fn from(&self, color: Color) -> f64 {
-        match color {
-            Color::white => self.white,
-            Color::black => self.black,
-        }
-    }
-    
-    pub fn tick(&mut self, color: Color) {
-        let now = time::now_utc();
-        let Time(updated) = self.last_update;
-        let passed = ((now - updated).num_milliseconds() as f64) / 1000.0;
-        self.last_update = Time(now);
-        match color {
-            // TODO: only tick when gameIsRunning instead of using max
-            Color::white => self.white = (self.white - passed).max(0.0),
-            Color::black => self.black = (self.black - passed).max(0.0),
-        };
     }
 }
 
