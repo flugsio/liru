@@ -139,8 +139,10 @@ impl Session {
             {
                 let cookies = res.headers().get::<SetCookie>().expect("Cookies: session cookie expected!");
                 for c in cookies.iter() {
-                    let split = c.split("=").collect::<Vec<_>>();
-                    cookie.set(split[0].to_owned(), split[1].to_owned());
+                    let mut split = c.split("=").collect::<Vec<_>>();
+                    let key = split.remove(0);
+                    let value = split.join("");
+                    cookie.set(key.to_owned(), value.to_owned());
                 }
             }
             let b = core.run(res.body().concat2()).unwrap();
