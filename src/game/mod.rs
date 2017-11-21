@@ -2,13 +2,13 @@ pub mod socket;
 pub mod latency_recorder;
 pub mod clock;
 pub mod color;
+pub mod lila_message;
 
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc;
 use std::thread;
 
 use rustc_serialize::json;
-use rustc_serialize::Decodable;
 use uuid::Uuid;
 
 use lila;
@@ -17,6 +17,7 @@ use lila::Session;
 pub use game::latency_recorder::LatencyRecorder;
 pub use game::clock::Clock;
 pub use game::color::Color;
+pub use game::lila_message::LilaMessage;
 
 pub struct ConnectedPov {
     pub pov: Arc<Mutex<Pov>>,
@@ -186,58 +187,7 @@ impl Pov {
         let color = self.game.player;
         self.clock.as_mut().map(|c| c.tick(color));
     }
-}
 
-enum LilaMessage {
-    Pong(Pong),
-    Move(Move),
-    Clock(Clock),
-}
-
-impl LilaMessage {
-    fn decode(obj: &json::Object) -> Option<LilaMessage> {
-        fn decode<T: Decodable>(data: &json::Json) -> Option<T> {
-            let mut decoder = json::Decoder::new(data.to_owned());
-            Decodable::decode(&mut decoder)
-                .map_err(|e| error!("could not decode: {}", e)).ok()
-        }
-        let data = obj.get("d");
-        match (obj.get("t").and_then(|t| t.as_string()), data) {
-            // TODO: gone, crowd, end, tvSelect, challenges, drop,
-            // following_enters, following_leaves, following_onlines,
-            // following_playing, following_stopped_plaing,
-            // message, analysisProgress, reload, and more
-            (Some("n"), Some(data)) => decode(data).map(|d| LilaMessage::Pong(d)),
-            (Some("move"), Some(data)) => decode(data).map(|d| LilaMessage::Move(d)),
-            (Some("clock"), Some(data)) => decode(data).map(|d| LilaMessage::Clock(d)),
-            (Some(ref t), d) => {
-                warn!("unhandled: {}, {:?}", t, d);
-                None
-            },
-            _ => {
-                warn!("unhandled: Missing type");
-                None
-            }
-        }
-    }
-
-}
-
-#[derive(RustcDecodable)]
-struct Pong {
-    latency: i64,
-}
-
-#[allow(dead_code)]
-#[derive(RustcDecodable)]
-struct Move {
-    clock: Option<Clock>,
-    // "dests": Object({"a6": String("a5"), "c7": String("b8d8b6a5d6e5f4g3h2"), "d5": String("c6e6"), "f5": String("f4")}),
-    //dests: String,
-    fen: String,
-    san: String, // Bc7
-    uci: String, // e5c7
-    ply: u64,
 }
 
 #[derive(RustcEncodable)]
