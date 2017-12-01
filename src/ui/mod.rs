@@ -5,6 +5,7 @@ mod game_view;
 mod menu_view;
 mod renderer;
 mod menu_result;
+mod menu_option;
 mod rb_style;
 
 use std::default::Default;
@@ -18,18 +19,12 @@ use std::time::Duration;
 use lila;
 
 pub use ui::game_view::GameView;
+pub use ui::menu_option::MenuOption;
 pub use ui::menu_view::MenuView;
 pub use ui::menu_result::MenuResult;
 pub use ui::renderer::Renderer;
 pub use ui::view::View;
 pub use ui::rb_style::RBStyle;
-
-pub enum MenuOption {
-    WatchTv {
-        name: String,
-        url: String,
-    },
-}
 
 pub struct UI {
     running: bool,
@@ -162,24 +157,5 @@ impl UI {
         self.views.get(self.current_view).unwrap().render(&mut self.renderer);
         self.renderer.present();
     }
-
 }
 
-impl MenuOption {
-    pub fn name(&self) -> &str {
-        match self {
-            &MenuOption::WatchTv {ref name, ..} => { // TODO remove url
-               name
-            },
-        }
-    }
-
-    fn execute(&self) -> MenuResult {
-        match self {
-            &MenuOption::WatchTv {ref name, ref url} => {
-                MenuResult::AddGameView { name: name.clone(), url: url.clone() }
-            },
-            //_ => { MenuResult::None }
-        }
-    }
-}
