@@ -141,7 +141,7 @@ impl Session {
                 for c in cookies.iter() {
                     let mut split = c.split("=").collect::<Vec<_>>();
                     let key = split.remove(0);
-                    let value = split.join("");
+                    let value = split.join("=");
                     cookie.set(key.to_owned(), value.to_owned());
                 }
             }
