@@ -11,7 +11,7 @@ use super::Renderer;
 use super::View;
 
 pub struct GameView {
-    pub name: String,
+    name: String,
     #[allow(dead_code)]
     pub url: String,
     pub pov: game::ConnectedPov,
@@ -151,8 +151,8 @@ impl View for GameView {
         self.pov.pov.lock().ok().map(|p| self.render_pov(r, 0, 0, &p));
     }
 
-    fn name(&self) -> &str {
-        &self.name
+    fn name(&self) -> String {
+        self.name.to_owned()
     }
 
     fn key_event(&mut self, key: Key) -> MenuResult {

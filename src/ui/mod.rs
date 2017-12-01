@@ -42,31 +42,10 @@ impl UI {
             Result::Err(e) => panic!("{}", e),
         };
 
-        let mut views = Vec::new();
-        let mut menu_options = Vec::new();
+        let mut views = Vec::<Box<View>>::new();
 
-        for game in &session.user.nowPlaying {
-            menu_options.push(MenuOption::WatchTv { name: game.opponent.username.clone(), url: game.fullId.clone() });
-        }
-
-        menu_options.push(MenuOption::WatchTv { name: "Best".into(), url: "tv/best".into() });
-        menu_options.push(MenuOption::WatchTv { name: "Bullet".into(), url: "tv/bullet".into() });
-        menu_options.push(MenuOption::WatchTv { name: "Blitz".into(), url: "tv/blitz".into() });
-        menu_options.push(MenuOption::WatchTv { name: "Classical".into(), url: "tv/classical".into() });
-        menu_options.push(MenuOption::WatchTv { name: "Crazyhouse".into(), url: "tv/crazyhouse".into() });
-        menu_options.push(MenuOption::WatchTv { name: "Chess 960".into(), url: "tv/chess960".into() });
-        menu_options.push(MenuOption::WatchTv { name: "King of the Hill".into(), url: "tv/kingOfTheHill".into() });
-        menu_options.push(MenuOption::WatchTv { name: "Three-Check".into(), url: "tv/threeCheck".into() });
-        menu_options.push(MenuOption::WatchTv { name: "Antichess".into(), url: "tv/antichess".into() });
-        menu_options.push(MenuOption::WatchTv { name: "Atomic".into(), url: "tv/atomic".into() });
-        menu_options.push(MenuOption::WatchTv { name: "Horde".into(), url: "tv/horde".into() });
-        menu_options.push(MenuOption::WatchTv { name: "Racing Kings".into(), url: "tv/racingKings".into() });
-        menu_options.push(MenuOption::WatchTv { name: "Computer".into(), url: "tv/computer".into() });
-
-        views.push(Box::new(MenuView {
-            menu_options: menu_options,
-            current: 0,
-        }) as Box<View>);
+        views.push(Box::new(MenuView::new_tv()));
+        views.push(Box::new(MenuView::new_playing(&session.user.nowPlaying)));
 
         return UI {
             running: true,
@@ -146,9 +125,9 @@ impl UI {
         let mut x = 2;
         for (i, view) in self.views.iter().enumerate() {
             if i == self.current_view {
-                self.renderer.print(x, 0, light, view.name());
+                self.renderer.print(x, 0, light, &view.name());
             } else {
-                self.renderer.print(x, 0, dark, view.name());
+                self.renderer.print(x, 0, dark, &view.name());
             }
             x += view.name().len() + 3;
             self.renderer.print(x- 2, 0, dark, "|");
