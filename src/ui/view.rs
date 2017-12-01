@@ -1,7 +1,7 @@
 use rustbox;
 
-use super::Renderer;
 use super::MenuResult;
+use super::Renderer;
 
 pub trait View {
     fn tick(&mut self);

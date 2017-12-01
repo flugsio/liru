@@ -1,13 +1,13 @@
-use rustbox;
 use rustbox::Color;
 use rustbox::Key;
 use rustbox::{RB_BOLD, RB_NORMAL};
+use rustbox;
 
 use super::MenuOption;
 use super::MenuResult;
-use super::View;
 use super::RBStyle;
 use super::Renderer;
+use super::View;
 
 pub struct MenuView {
     pub menu_options: Vec<MenuOption>,

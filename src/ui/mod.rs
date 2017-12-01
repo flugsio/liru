@@ -1,18 +1,18 @@
 extern crate rustbox;
 
-mod view;
 mod game_view;
-mod menu_view;
-mod renderer;
-mod menu_result;
 mod menu_option;
+mod menu_result;
+mod menu_view;
 mod rb_style;
+mod renderer;
+mod view;
 
 use std::default::Default;
 
-use rustbox::{Color, RustBox};
 use rustbox::Key;
 use rustbox::RB_NORMAL;
+use rustbox::{Color, RustBox};
 
 use std::time::Duration;
 
@@ -20,11 +20,11 @@ use lila;
 
 pub use ui::game_view::GameView;
 pub use ui::menu_option::MenuOption;
-pub use ui::menu_view::MenuView;
 pub use ui::menu_result::MenuResult;
+pub use ui::menu_view::MenuView;
+pub use ui::rb_style::RBStyle;
 pub use ui::renderer::Renderer;
 pub use ui::view::View;
-pub use ui::rb_style::RBStyle;
 
 pub struct UI {
     running: bool,
