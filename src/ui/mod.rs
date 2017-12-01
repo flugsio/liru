@@ -1,5 +1,11 @@
 extern crate rustbox;
 
+mod view;
+mod game_view;
+mod renderer;
+mod menu_result;
+mod rb_style;
+
 use std::default::Default;
 
 use rustbox::{Color, RustBox};
@@ -11,36 +17,15 @@ use std::time::Duration;
 use game;
 use lila;
 
-#[derive(Clone, Copy)]
-struct RBStyle {
-    style: rustbox::Style,
-    fg: Color,
-    bg: Color,
-}
-
-trait View {
-    fn tick(&mut self);
-    fn name(&self) -> &str;
-    fn render(&self, ui: &mut Renderer);
-    fn key_event(&mut self, key: rustbox::keyboard::Key) -> MenuResult;
-}
-
-enum MenuResult {
-    AddGameView { name: String, url: String },
-    None
-}
+pub use ui::game_view::GameView;
+pub use ui::menu_result::MenuResult;
+pub use ui::renderer::Renderer;
+pub use ui::view::View;
+pub use ui::rb_style::RBStyle;
 
 struct MenuView {
     menu_options: Vec<MenuOption>,
     current: usize,
-}
-
-struct GameView {
-    name: String,
-    #[allow(dead_code)]
-    url: String,
-    pov: game::ConnectedPov,
-    input: Vec<char>,
 }
 
 pub enum MenuOption {
@@ -56,10 +41,6 @@ pub struct UI {
     views: Vec<Box<View>>,
     current_view: usize,
     session: lila::Session,
-}
-
-struct Renderer {
-    rb: RustBox,
 }
 
 impl UI {
@@ -188,20 +169,6 @@ impl UI {
 
 }
 
-impl Renderer {
-    pub fn print(&self, x: usize, y: usize, rbstyle: RBStyle, chars: &str) {
-        self.rb.print(x, y, rbstyle.style, rbstyle.fg, rbstyle.bg, chars);
-    }
-
-    pub fn clear(&self) {
-        self.rb.clear();
-    }
-
-    pub fn present(&self) {
-        self.rb.present();
-    }
-}
-
 impl View for MenuView {
     fn tick(&mut self) {
     }
@@ -246,38 +213,6 @@ impl View for MenuView {
     }
 }
 
-impl View for GameView {
-    fn tick(&mut self) {
-        self.pov.pov.lock().ok().map(|mut p| {
-            p.tick();
-        });
-    }
-
-    fn render(&self, r: &mut Renderer) {
-        self.pov.latency.lock().ok().map(|l| self.render_latency(r, 0, 0, &l));
-        self.pov.pov.lock().ok().map(|p| self.render_pov(r, 0, 0, &p));
-    }
-
-    fn name(&self) -> &str {
-        &self.name
-    }
-
-    fn key_event(&mut self, key: Key) -> MenuResult {
-        match key {
-            Key::Enter => {
-                self.handle_input();
-            }
-            Key::Char(x) => {
-                self.input.push(x);
-            }
-            Key::Backspace => {
-                self.input.pop();
-            }
-            _ => ()
-        }
-        MenuResult::None
-    }
-}
 
 impl MenuView {
 }
