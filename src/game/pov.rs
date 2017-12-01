@@ -62,5 +62,10 @@ impl Pov {
         let color = self.game.player;
         self.clock.as_mut().map(|c| c.tick(color));
     }
+
+    pub fn movable(&self) -> bool {
+        // TODO: implement
+        true
+    }
 }
 

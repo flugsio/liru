@@ -254,10 +254,8 @@ impl View for GameView {
     }
 
     fn render(&self, r: &mut Renderer) {
-        self.pov.pov.lock().ok().map(|p| self.render_pov(r, 0, 0, &p));
         self.pov.latency.lock().ok().map(|l| self.render_latency(r, 0, 0, &l));
-        let style = RBStyle { style: RB_BOLD, fg: Color::White, bg: Color::Black };
-        r.print(5, 16, style, &format!("Move {}▍          ", self.input.iter().cloned().collect::<String>()));
+        self.pov.pov.lock().ok().map(|p| self.render_pov(r, 0, 0, &p));
     }
 
     fn name(&self) -> &str {
@@ -322,6 +320,10 @@ impl GameView {
             },
             None => ()
         };
+        if pov.movable() {
+            let style = RBStyle { style: RB_BOLD, fg: Color::White, bg: Color::Black };
+            r.print(5, 16, style, &format!("Move {}▍          ", self.input.iter().cloned().collect::<String>()));
+        }
     }
 
     pub fn render_player(&self, r: &mut Renderer, x: usize, y: usize, player: &game::Player) {
