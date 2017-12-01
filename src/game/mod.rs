@@ -1,9 +1,9 @@
-pub mod socket;
-pub mod latency_recorder;
-pub mod clock;
-pub mod color;
-pub mod lila_message;
-pub mod pov;
+mod socket;
+mod latency_recorder;
+mod clock;
+mod color;
+mod lila_message;
+mod pov;
 
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc;
@@ -16,10 +16,10 @@ use lila;
 use lila::Session;
 
 pub use game::latency_recorder::LatencyRecorder;
-pub use game::clock::Clock;
 pub use game::color::Color;
-pub use game::lila_message::LilaMessage;
 pub use game::pov::{Pov,Player};
+use game::clock::Clock;
+use game::lila_message::LilaMessage;
 
 pub struct ConnectedPov {
     pub pov: Arc<Mutex<Pov>>,

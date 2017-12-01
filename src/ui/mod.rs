@@ -18,13 +18,13 @@ use std::time::Duration;
 
 use lila;
 
-pub use ui::game_view::GameView;
-pub use ui::menu_option::MenuOption;
-pub use ui::menu_result::MenuResult;
-pub use ui::menu_view::MenuView;
-pub use ui::rb_style::RBStyle;
-pub use ui::renderer::Renderer;
-pub use ui::view::View;
+use ui::game_view::GameView;
+use ui::menu_option::MenuOption;
+use ui::menu_result::MenuResult;
+use ui::menu_view::MenuView;
+use ui::rb_style::RBStyle;
+use ui::renderer::Renderer;
+use ui::view::View;
 
 pub struct UI {
     running: bool,
