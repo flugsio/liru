@@ -112,7 +112,7 @@ impl Session {
     }
 
     pub fn socket_url(path: &str) -> String {
-        let base_url = "wss://socket.lichess.org";
+        let base_url = "ws://socket.lichess.org";
         format!("{}{}", base_url, path)
     }
 
