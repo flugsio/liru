@@ -173,7 +173,7 @@ impl Session {
         req.headers_mut().set(Accept(vec![qitem("application/vnd.lichess.v1+json".parse().unwrap())]));
         req.headers_mut().set(self.cookie.clone());
         let res = core.run(client.request(req)).unwrap();
-        str::from_utf8((&core.run(res.body().concat2()).unwrap())).unwrap().to_string()
+        str::from_utf8(&core.run(res.body().concat2()).unwrap()).unwrap().to_string()
     }
 
     pub fn cookie(&self) -> Cookie {

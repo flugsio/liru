@@ -12,8 +12,6 @@ use super::View;
 
 pub struct GameView {
     name: String,
-    #[allow(dead_code)]
-    pub url: String,
     pub pov: game::ConnectedPov,
     pub input: Vec<char>,
 }
@@ -24,7 +22,6 @@ impl GameView {
 
         return GameView {
             name: name,
-            url: url,
             pov: connected_pov,
             input: vec!(),
         };
