@@ -58,8 +58,8 @@ fn acquire(what: &str) -> String {
 // levels: trace, debug, info, warn, error
 fn setup_logger(debug: bool) {
     let level = match debug {
-        true  => log::LogLevelFilter::Debug,
-        false => log::LogLevelFilter::Warn,
+        true  => log::LevelFilter::Debug,
+        false => log::LevelFilter::Warn,
     };
 
     fern::Dispatch::new()
