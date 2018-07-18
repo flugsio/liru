@@ -2,6 +2,7 @@
 name = "liru"
 version = "0.1.5"
 authors = ["Jimmie Elvenmark <flugsio@gmail.com>"]
+repository = "https://github.com/flugsio/liru"
 
 [dependencies]
 log = "0.4.3"
@@ -12,7 +13,8 @@ rustc-serialize = "0.3.24"
 rustbox = "0.9.0"
 time = "0.1.40"
 futures = "0.1.23"
-hyper = "0.11.27"
-hyper-tls = "0.1.3"
+hyper = "0.12.6"
+hyper-tls = "0.3.0"
 tokio-core = "0.1.17"
 url = "1.7.1"
+cookie = "0.10.1"

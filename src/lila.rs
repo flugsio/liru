@@ -2,16 +2,14 @@ use std::str;
 use std::collections::HashMap;
 
 use futures::{Stream};
-use hyper::{Method, Request, Client};
+use hyper::{Body, Request, Client};
 use hyper::header::{
-    Accept,
-    Connection,
-    ContentLength,
-    ContentType,
-    Cookie,
-    SetCookie,
-    UserAgent,
-    qitem,
+    CONTENT_LENGTH,
+    ACCEPT,
+    CONNECTION,
+    CONTENT_TYPE,
+    SET_COOKIE,
+    USER_AGENT,
 };
 use tokio_core::reactor::Core;
 use hyper_tls::HttpsConnector;
@@ -19,9 +17,11 @@ use hyper_tls::HttpsConnector;
 use rustc_serialize::json;
 use url::form_urlencoded;
 
+use cookie::{Cookie, CookieJar};
+
 pub struct Session {
     pub user: LilaUser,
-    pub cookie: Cookie,
+    pub cookie: Box<CookieJar>,
 }
 
 #[allow(non_snake_case)]
@@ -85,7 +85,7 @@ pub struct PlayingOpponent {
 
 impl Session {
     pub fn anonymous() -> Session {
-        let cookie = Cookie::new();
+        let cookie = Box::new(CookieJar::new());
         Session {
             user: LilaUser {
                 id: "anonymous".to_owned(),
@@ -118,39 +118,36 @@ impl Session {
 
     pub fn sign_in(username: String, password: String) -> Result<Session, &'static str> {
         let mut core = Core::new().unwrap();
-        let handle = core.handle();
-        let client = Client::configure()
-            .connector(HttpsConnector::new(4, &handle).unwrap())
-            .build(&handle);
+        let _handle = core.handle();
+        let https = HttpsConnector::new(4).unwrap();
+        let client = Client::builder()
+            .build::<_, Body>(https);
         let mut data = String::new();
         form_urlencoded::Serializer::new(&mut data)
             .append_pair("username", &username)
             .append_pair("password", &password);
-        let mut req = Request::new(Method::Post, (&Session::url("login")).parse().unwrap());
-        req.headers_mut().set(ContentLength(data.len() as u64));
-        req.headers_mut().set(Connection::close());
-        req.headers_mut().set(UserAgent::new(format!("liru/{}", ::VERSION)));
-        req.headers_mut().set(Accept(vec![qitem("application/vnd.lichess.v1+json".parse().unwrap())]));
-        req.headers_mut().set(ContentType::form_url_encoded());
-        req.set_body(data);
+        let req = Request::builder()
+            .method("POST")
+            .uri(&Session::url("login"))
+            .header(CONTENT_LENGTH, data.len())
+            .header(CONNECTION, "close")
+            .header(USER_AGENT, format!("liru/{}", ::VERSION).as_str())
+            .header(ACCEPT, "application/vnd.lichess.v1+json")
+            .header(CONTENT_TYPE, "application/x-www-form-urlencoded")
+            .body(data.into()).unwrap();
         let res = core.run(client.request(req)).unwrap();
         if res.status().is_success() {
-            let mut cookie = Cookie::new();
-            {
-                let cookies = res.headers().get::<SetCookie>().expect("Cookies: session cookie expected!");
-                for c in cookies.iter() {
-                    let mut split = c.split("=").collect::<Vec<_>>();
-                    let key = split.remove(0);
-                    let value = split.join("=");
-                    cookie.set(key.to_owned(), value.to_owned());
-                }
+            let mut cookie_jar = CookieJar::new();
+            for cookie in res.headers().get_all(SET_COOKIE).iter() {
+                let cookie = cookie.to_str().unwrap().to_string();
+                cookie_jar.add_original(Cookie::parse(cookie).unwrap());
             }
-            let b = core.run(res.body().concat2()).unwrap();
+            let b = core.run(res.into_body().concat2()).unwrap();
             let body = str::from_utf8(&b).unwrap();
             trace!("{}", &body);
             Ok(Session {
                 user: json::decode(&body).unwrap(),
-                cookie: cookie,
+                cookie: Box::new(cookie_jar),
             })
             //} else if res.status.is_client_error() {
         } else {
@@ -162,21 +159,22 @@ impl Session {
     pub fn get(&self, path: &str) -> String {
         // TODO: catch error and print
         let mut core = Core::new().unwrap();
-        let handle = core.handle();
-        let client = Client::configure()
-            .connector(HttpsConnector::new(4, &handle).unwrap())
-            .build(&handle);
+        let _handle = core.handle();
+        let https = HttpsConnector::new(4).unwrap();
+        let client = Client::builder()
+            .build::<_, Body>(https);
 
-        let mut req = Request::new(Method::Get, (&Session::url(path)).parse().unwrap());
-        req.headers_mut().set(Connection::close());
-        req.headers_mut().set(UserAgent::new(format!("liru/{}", ::VERSION)));
-        req.headers_mut().set(Accept(vec![qitem("application/vnd.lichess.v1+json".parse().unwrap())]));
-        req.headers_mut().set(self.cookie.clone());
+        let mut builder = Request::builder();
+        builder.method("GET")
+            .uri(&Session::url(path))
+            .header(CONNECTION, "close")
+            .header(USER_AGENT, format!("liru/{}", ::VERSION).as_str())
+            .header(ACCEPT, "application/vnd.lichess.v1+json");
+        for cookie in self.cookie.iter() {
+            builder.header(cookie.name(), cookie.value());
+        }
+        let req = builder.body(Body::empty()).unwrap();
         let res = core.run(client.request(req)).unwrap();
-        str::from_utf8(&core.run(res.body().concat2()).unwrap()).unwrap().to_string()
-    }
-
-    pub fn cookie(&self) -> Cookie {
-        self.cookie.clone()
+        str::from_utf8(&core.run(res.into_body().concat2()).unwrap()).unwrap().to_string()
     }
 }

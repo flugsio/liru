@@ -7,7 +7,7 @@ use std::sync::{Arc, Mutex};
 
 use std::thread;
 
-use hyper::header::{Cookie};
+use cookie::CookieJar;
 
 use time;
 
@@ -45,7 +45,7 @@ pub struct Client {
     version: Rc<Cell<u64>>,
     game_tx: mpsc::Sender<json::Object>,
     last_ping: time::Tm,
-    cookie: Cookie,
+    cookie: CookieJar,
 }
 
 impl Handler for Client {
@@ -122,7 +122,7 @@ impl Handler for Client {
 }
 
 impl Client {
-    pub fn connect(c: &Cookie, url: String, version: u64,
+    pub fn connect(c: &CookieJar, url: String, version: u64,
                    game_tx: mpsc::Sender<json::Object>,
                    send_rx: Arc<Mutex<mpsc::Receiver<String>>>) {
         debug!("connecting to: {}", url.clone());

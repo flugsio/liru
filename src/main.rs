@@ -11,6 +11,7 @@ extern crate rustc_serialize;
 extern crate ws;
 extern crate rustbox;
 extern crate time;
+extern crate cookie;
 
 use std::io;
 use std::io::Write;

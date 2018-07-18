@@ -37,7 +37,7 @@ impl ConnectedPov {
         let send_rx = Arc::new(Mutex::new(send_rx));
 
         let pov_2 = pov_1.clone();
-        let c = session.cookie();
+        let c = session.cookie.clone();
         let sri = Uuid::new_v4();
         debug!("SRI set to {}", sri);
         //let new_path = str::replace(path, "/v1", "/v2");
