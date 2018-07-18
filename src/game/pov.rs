@@ -3,7 +3,7 @@ use super::Clock;
 use super::Color;
 use super::Game;
 
-#[derive(RustcDecodable)]
+#[derive(Deserialize)]
 pub struct Pov {
     pub game: Game,
     pub clock: Option<Clock>,
@@ -15,13 +15,13 @@ pub struct Pov {
     pub orientation: Option<Color>, 
 }
 
-#[derive(RustcDecodable)]
+#[derive(Deserialize)]
 pub struct Tv {
     pub channel: String,
     pub flip: bool,
 }
 
-#[derive(RustcDecodable)]
+#[derive(Deserialize)]
 pub struct Player {
     pub color: Color,
     pub version: Option<i64>,
@@ -30,19 +30,19 @@ pub struct Player {
     pub rating: Option<i64>,
 }
 
-#[derive(RustcDecodable)]
+#[derive(Deserialize)]
 pub struct User {
     pub id: String,
     pub username: String,
 }
 
-#[derive(RustcDecodable)]
+#[derive(Deserialize)]
 pub struct GameUrl {
     pub socket: String,
     pub round: String,
 }
 
-#[derive(RustcDecodable)]
+#[derive(Deserialize)]
 pub struct CorrespondenceClock {
     _todo: Option<String>,
 }

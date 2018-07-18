@@ -1,6 +1,5 @@
 language: rust
 rust:
-  - 1.21.0
   - 1.22.1
   - 1.23.0
   - 1.24.1
@@ -11,6 +10,9 @@ rust:
   - nightly
 matrix:
   allow_failures:
+    - rust: 1.22.1
+    - rust: 1.23.0
+    - rust: 1.24.1
     - rust: nightly
   include:
     - rust: stable

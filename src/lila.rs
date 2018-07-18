@@ -14,7 +14,7 @@ use hyper::header::{
 use tokio_core::reactor::Core;
 use hyper_tls::HttpsConnector;
 
-use rustc_serialize::json;
+use serde_json;
 use url::form_urlencoded;
 
 use cookie::{Cookie, CookieJar};
@@ -25,7 +25,7 @@ pub struct Session {
 }
 
 #[allow(non_snake_case)]
-#[derive(RustcDecodable)]
+#[derive(Deserialize, Debug)]
 pub struct LilaUser {
     pub id: String,
     pub username: String,
@@ -40,7 +40,7 @@ pub struct LilaUser {
     pub nowPlaying: Vec<PlayingGame>,
 }
 
-#[derive(RustcDecodable)]
+#[derive(Deserialize, Debug)]
 pub struct Perf {
     pub games: i64,
     pub rating: i64,
@@ -49,14 +49,14 @@ pub struct Perf {
     pub prog: i64,
 }
 
-#[derive(RustcDecodable)]
+#[derive(Deserialize, Debug)]
 pub struct PlayTime {
     pub total: i64,
     pub tv: i64,
 }
 
 #[allow(non_snake_case)]
-#[derive(RustcDecodable)]
+#[derive(Deserialize, Debug)]
 pub struct PlayingGame {
     pub fullId: String,
     pub gameId: String,
@@ -76,7 +76,7 @@ pub struct PlayingGame {
 }
 
 #[allow(non_snake_case)]
-#[derive(RustcDecodable)]
+#[derive(Deserialize, Debug)]
 pub struct PlayingOpponent {
     pub id: Option<String>,
     pub username: String,
@@ -107,12 +107,12 @@ impl Session {
     }
 
     pub fn url(path: &str) -> String {
-        let base_url = "https://en.lichess.org";
+        let base_url = "https://lichess.org";
         format!("{}/{}", base_url, path)
     }
 
     pub fn socket_url(path: &str) -> String {
-        let base_url = "ws://socket.lichess.org";
+        let base_url = "wss://socket.lichess.org";
         format!("{}{}", base_url, path)
     }
 
@@ -146,7 +146,7 @@ impl Session {
             let body = str::from_utf8(&b).unwrap();
             trace!("{}", &body);
             Ok(Session {
-                user: json::decode(&body).unwrap(),
+                user: serde_json::from_str(&body).unwrap(),
                 cookie: Box::new(cookie_jar),
             })
             //} else if res.status.is_client_error() {

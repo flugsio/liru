@@ -1,5 +1,11 @@
 #[macro_use]
 extern crate log;
+#[macro_use]
+extern crate serde_derive;
+#[macro_use]
+extern crate serde_json;
+
+extern crate serde;
 extern crate fern;
 extern crate uuid;
 extern crate futures;
@@ -7,7 +13,6 @@ extern crate hyper;
 extern crate hyper_tls;
 extern crate tokio_core;
 extern crate url;
-extern crate rustc_serialize;
 extern crate ws;
 extern crate rustbox;
 extern crate time;

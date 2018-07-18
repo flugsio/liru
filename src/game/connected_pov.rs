@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 use std::sync::mpsc;
 use std::thread;
 
-use rustc_serialize::json;
+use serde_json;
 use uuid::Uuid;
 
 use lila;
@@ -25,7 +25,7 @@ impl ConnectedPov {
     pub fn new(session: &lila::Session, path: &str) -> ConnectedPov {
         let body = session.get(path);
         debug!("GET response: {}", body);
-        let pov: Pov = json::decode(&body).unwrap();
+        let pov: Pov = serde_json::from_str(&body).unwrap();
         let version = match pov.player.version {
             Some(v) => v as u64,
             None => 0
@@ -88,19 +88,19 @@ impl ConnectedPov {
                 promotion: None,
             },
         };
-        let message = json::encode(&move_packet).unwrap();
+        let message = serde_json::to_string(&move_packet).unwrap();
         self.send_tx.send(message).unwrap();
     }
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize, Debug)]
 pub struct MovePacket {
     t: String,
     d: Dest,
     l: Option<i64>,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize, Debug)]
 pub struct Dest {
     pub from: String,
     pub to: String,

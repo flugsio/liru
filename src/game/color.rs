@@ -2,7 +2,7 @@ use std::ops::Not;
 
 #[allow(non_camel_case_types)]
 #[derive(PartialEq, Eq, Copy, Clone)]
-#[derive(RustcDecodable)]
+#[derive(Deserialize, Debug)]
 pub enum Color {
     white,
     black,

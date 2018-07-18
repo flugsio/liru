@@ -11,8 +11,7 @@ use cookie::CookieJar;
 
 use time;
 
-use rustc_serialize::json;
-use rustc_serialize::json::Json;
+use serde_json;
 
 use url;
 use ws::{Request, Handler, Sender, Result, Message, Handshake, CloseCode, Error};
@@ -20,7 +19,7 @@ use ws::util::{Token};
 
 const PING: Token = Token(1);
 
-#[derive(RustcEncodable)]
+#[derive(Serialize, Debug)]
 struct PingPacket {
     t: String,
     v: u64
@@ -35,7 +34,7 @@ impl PingPacket {
     }
     
     pub fn to_message(&self) -> String {
-        json::encode(self).unwrap()
+        serde_json::to_string(self).unwrap()
     }
 }
 
@@ -43,7 +42,7 @@ impl PingPacket {
 pub struct Client {
     out: Sender,
     version: Rc<Cell<u64>>,
-    game_tx: mpsc::Sender<json::Object>,
+    game_tx: mpsc::Sender<serde_json::Value>,
     last_ping: time::Tm,
     cookie: CookieJar,
 }
@@ -56,30 +55,30 @@ impl Handler for Client {
 
     fn on_message(&mut self, msg: Message) -> Result<()> {
         trace!("Received str: {}", msg);
-        let json = Json::from_str(msg.as_text().unwrap()).unwrap();
+        let json: serde_json::Value = serde_json::from_str(msg.as_text().unwrap()).unwrap();
         debug!("Received obj: {:?}", json);
         if json.is_object() {
             let obj = json.as_object().unwrap();
-            match obj.get("t").and_then(|t| t.as_string()) {
+            match obj.get("t").and_then(|t| t.as_str()) {
                 Some("n") => { // pong, inject travel time
                     let latency = time::now_utc() - self.last_ping;
-                    // this mess changes {"t":"n"} to {"t":"n","d":{"latency":30}}
-                    let mut data = json::Object::new();
-                    data.insert("latency".into(), Json::I64(latency.num_milliseconds()));
-                    let mut pong = obj.clone();
-                    pong.insert("d".into(), Json::Object(data));
+                    let pong = json!({
+                        "t": "n",
+                        "d": { "latency": latency.num_milliseconds() },
+                    });
                     self.on_handle(&pong);
                     self.out.timeout(2000, PING).unwrap();
                 }
                 Some("b") => { // batch
                     let data = obj.get("d").unwrap();
                     for item in data.as_array().unwrap().iter() {
-                        let obj = item.as_object().unwrap();
-                        self.on_handle(obj);
+                        self.on_handle(item);
                     }
                 },
-                _ => self.on_handle(obj),
+                _ => self.on_handle(&json!(obj)),
             }
+        } else {
+            self.on_handle(&json);
         }
         Ok(())
     }
@@ -123,7 +122,7 @@ impl Handler for Client {
 
 impl Client {
     pub fn connect(c: &CookieJar, url: String, version: u64,
-                   game_tx: mpsc::Sender<json::Object>,
+                   game_tx: mpsc::Sender<serde_json::Value>,
                    send_rx: Arc<Mutex<mpsc::Receiver<String>>>) {
         debug!("connecting to: {}", url.clone());
         let v = Rc::new(Cell::new(version));
@@ -151,7 +150,7 @@ impl Client {
         }).unwrap();
     }
 
-    fn on_handle(&mut self, obj: &json::Object) {
+    fn on_handle(&mut self, obj: &serde_json::Value) {
         if let Some(v) = obj.get("v").and_then(|v| v.as_u64()) {
             let current = self.version.get();
             if v <= current {

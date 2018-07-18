@@ -1,24 +1,22 @@
 use time;
 
-use rustc_serialize::Decoder;
-use rustc_serialize::Decodable;
-
 use super::Color;
 
 // TODO: ehm, maybe not like this
 // wrap to implement trait on foreign type in this version of rust
 pub struct Time(time::Tm);
-impl Decodable for Time {
-    fn decode<D: Decoder>(_d: &mut D) -> Result<Time, D::Error> {
-        Ok(Time(time::now_utc()))
+impl Time {
+    pub fn default() -> Time {
+        Time(time::now_utc())
     }
 }
 
-
-#[derive(RustcDecodable)]
+#[derive(Deserialize)]
 pub struct Clock {
     pub white: f64,
     pub black: f64,
+    #[serde(skip)]
+    #[serde(default = "Time::default")]
     last_update: Time,
 }
 

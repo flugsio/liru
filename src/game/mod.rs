@@ -13,7 +13,7 @@ pub use game::pov::{Pov,Player};
 use game::clock::Clock;
 
 #[allow(non_snake_case)]
-#[derive(RustcDecodable)]
+#[derive(Deserialize)]
 pub struct Game {
     pub id: String,
     pub variant: Variant,
@@ -31,14 +31,14 @@ pub struct Game {
     pub status: Status,
 }
 
-#[derive(RustcDecodable)]
+#[derive(Deserialize)]
 pub struct Variant {
     pub key: String,
     pub name: String,
     pub short: String,
 }
 
-#[derive(RustcDecodable)]
+#[derive(Deserialize)]
 pub struct Status {
     pub id: i64,
     pub name: String,
