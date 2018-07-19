@@ -1,5 +1,6 @@
 extern crate ws;
 
+use std;
 use std::rc::Rc;
 use std::cell::Cell;
 use std::sync::mpsc;
@@ -53,6 +54,8 @@ impl Handler for Client {
         self.out.timeout(10, PING)
     }
 
+    /// Takes care of low level messages. For example
+    /// ping/pong responses, and splitting batch messages.
     fn on_message(&mut self, msg: Message) -> Result<()> {
         trace!("Received str: {}", msg);
         let json: serde_json::Value = serde_json::from_str(msg.as_text().unwrap()).unwrap();
@@ -61,10 +64,9 @@ impl Handler for Client {
             let obj = json.as_object().unwrap();
             match obj.get("t").and_then(|t| t.as_str()) {
                 Some("n") => { // pong, inject travel time
-                    let latency = time::now_utc() - self.last_ping;
                     let pong = json!({
                         "t": "n",
-                        "d": { "latency": latency.num_milliseconds() },
+                        "d": { "latency": self.milliseconds_since_ping() },
                     });
                     self.on_handle(&pong);
                     self.out.timeout(2000, PING).unwrap();
@@ -151,19 +153,26 @@ impl Client {
     }
 
     fn on_handle(&mut self, obj: &serde_json::Value) {
-        if let Some(v) = obj.get("v").and_then(|v| v.as_u64()) {
-            let current = self.version.get();
-            if v <= current {
-                debug!("Already has event {}", v);
-                return;
-            } else if current + 1 < v {
-                debug!("Event gap detected from {} to {}", current, v);
-                return;
-            } else {
-                self.version.set(v);
-            }
+        // If message is versioned, it must have the expected version
+        match obj.get("v").map_or(Ok(()), |v| self.update_version(v.as_u64())) {
+            Ok(()) => self.game_tx.send(obj.to_owned()).unwrap(),
+            Err(e) => debug!("Dropping unexpected message. {}", e),
         }
-        self.game_tx.send(obj.to_owned()).unwrap();
+    }
+
+    fn update_version(&mut self, version: Option<u64>) -> std::result::Result<(), String> {
+        let expected = self.version.get() + 1;
+        match version {
+            Some(v) if (v < expected) => Err(format!("Already has event {}", v)),
+            Some(v) if (v > expected) =>
+                Err(format!("Event gap detected, expected {} but got {}", expected, v)),
+            Some(v) => Ok(self.version.set(v)),
+            None => Err("Version value is not u64".into()),
+        }
+    }
+
+    fn milliseconds_since_ping(&self) -> i64 {
+        (time::now_utc() - self.last_ping).num_milliseconds()
     }
 }
 

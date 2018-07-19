@@ -1,7 +1,7 @@
 use std::str;
 use std::collections::HashMap;
 
-use futures::{Stream};
+use futures::Stream;
 use hyper::{Body, Request, Client};
 use hyper::header::{
     CONTENT_LENGTH,
@@ -70,7 +70,7 @@ pub struct PlayingGame {
     //speed: correspondence,
     //perf: crazyhouse,
     //rated: false,
-    pub opponent: PlayingOpponent,
+    pub opponent: PlayingOpponent, 
     //pub isMyTurn: bool,
     //pub secondsLeft: i64,
 }

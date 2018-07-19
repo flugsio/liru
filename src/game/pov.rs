@@ -12,7 +12,7 @@ pub struct Pov {
     pub player: Player,
     pub opponent: Player,
     pub tv: Option<Tv>,
-    pub orientation: Option<Color>, 
+    pub orientation: Option<Color>,
 }
 
 #[derive(Deserialize)]
@@ -51,9 +51,7 @@ impl Pov {
     pub fn orientation(&self) -> Color {
         match self.orientation {
             Some(o) => o,
-            None => {
-                self.player.color
-            }
+            None => self.player.color,
         }
     }
 
