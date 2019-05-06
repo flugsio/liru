@@ -5,18 +5,8 @@ extern crate serde_derive;
 #[macro_use]
 extern crate serde_json;
 
-extern crate serde;
-extern crate fern;
-extern crate uuid;
-extern crate futures;
-extern crate hyper;
-extern crate hyper_tls;
-extern crate tokio_core;
-extern crate url;
-extern crate ws;
-extern crate rustbox;
-extern crate time;
-extern crate cookie;
+use fern;
+use time;
 
 use std::io;
 use std::io::Write;

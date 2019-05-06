@@ -1,4 +1,4 @@
-extern crate ws;
+use ws;
 
 use std;
 use std::rc::Rc;

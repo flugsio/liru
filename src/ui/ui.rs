@@ -1,4 +1,4 @@
-extern crate rustbox;
+use rustbox;
 
 use std::default::Default;
 
