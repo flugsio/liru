@@ -12,7 +12,7 @@ use super::RBStyle;
 use super::Renderer;
 use super::View;
 
-use lila;
+use crate::lila;
 
 pub struct MenuView {
     pub menu_options: Vec<MenuOption>,

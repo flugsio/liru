@@ -5,15 +5,15 @@ use std::thread;
 use serde_json;
 use uuid::Uuid;
 
-use lila;
-use lila::Session;
+use crate::lila;
+use crate::lila::Session;
 
 use super::LatencyRecorder;
 use super::Pov;
 use super::Color;
 
-use game::socket;
-use game::lila_message::LilaMessage;
+use crate::game::socket;
+use crate::game::lila_message::LilaMessage;
 
 pub struct ConnectedPov {
     pub pov: Arc<Mutex<Pov>>,

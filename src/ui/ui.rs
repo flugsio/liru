@@ -8,7 +8,7 @@ use rustbox::{Color, RustBox};
 
 use std::time::Duration;
 
-use lila;
+use crate::lila;
 
 use super::GameView;
 use super::MenuResult;

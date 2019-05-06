@@ -131,7 +131,7 @@ impl Session {
             .uri(&Session::url("login"))
             .header(CONTENT_LENGTH, data.len())
             .header(CONNECTION, "close")
-            .header(USER_AGENT, format!("liru/{}", ::VERSION).as_str())
+            .header(USER_AGENT, format!("liru/{}", crate::VERSION).as_str())
             .header(ACCEPT, "application/vnd.lichess.v1+json")
             .header(CONTENT_TYPE, "application/x-www-form-urlencoded")
             .body(data.into()).unwrap();
@@ -168,7 +168,7 @@ impl Session {
         builder.method("GET")
             .uri(&Session::url(path))
             .header(CONNECTION, "close")
-            .header(USER_AGENT, format!("liru/{}", ::VERSION).as_str())
+            .header(USER_AGENT, format!("liru/{}", crate::VERSION).as_str())
             .header(ACCEPT, "application/vnd.lichess.v1+json");
         for cookie in self.cookie.iter() {
             builder.header(cookie.name(), cookie.value());

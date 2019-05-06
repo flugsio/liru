@@ -2,8 +2,8 @@ use rustbox::Color;
 use rustbox::Key;
 use rustbox::{RB_BOLD, RB_NORMAL};
 
-use game;
-use lila;
+use crate::game;
+use crate::lila;
 
 use super::MenuResult;
 use super::RBStyle;

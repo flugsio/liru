@@ -6,11 +6,11 @@ mod color;
 mod lila_message;
 mod pov;
 
-pub use game::latency_recorder::LatencyRecorder;
-pub use game::connected_pov::ConnectedPov;
-pub use game::color::Color;
-pub use game::pov::{Pov,Player};
-use game::clock::Clock;
+pub use crate::game::latency_recorder::LatencyRecorder;
+pub use crate::game::connected_pov::ConnectedPov;
+pub use crate::game::color::Color;
+pub use crate::game::pov::{Pov,Player};
+use crate::game::clock::Clock;
 
 #[allow(non_snake_case)]
 #[derive(Deserialize)]
