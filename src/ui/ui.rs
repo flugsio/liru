@@ -20,7 +20,7 @@ use super::View;
 pub struct UI {
     running: bool,
     renderer: Renderer,
-    views: Vec<Box<View>>,
+    views: Vec<Box<dyn View>>,
     current_view: usize,
     session: lila::Session,
 }
@@ -33,7 +33,7 @@ impl UI {
             Result::Err(e) => panic!("{}", e),
         };
 
-        let mut views = Vec::<Box<View>>::new();
+        let mut views = Vec::<Box<dyn View>>::new();
 
         views.push(Box::new(MenuView::new_tv()));
         views.push(Box::new(MenuView::new_playing(&session.user.nowPlaying)));
@@ -47,13 +47,13 @@ impl UI {
         };
     }
 
-    fn add_view(&mut self, view: Box<View>) {
+    fn add_view(&mut self, view: Box<dyn View>) {
         self.views.push(view);
     }
 
     fn add_game(&mut self, name: String, url: String) {
         let game = GameView::new(&self.session, name, url);
-        self.add_view(Box::new(game) as Box<View>);
+        self.add_view(Box::new(game) as Box<dyn View>);
     }
 
     pub fn start(&mut self) {
@@ -78,7 +78,7 @@ impl UI {
         }
     }
 
-    fn current_view(&mut self) -> &mut Box<View> {
+    fn current_view(&mut self) -> &mut Box<dyn View> {
         self.views.get_mut(self.current_view).unwrap()
     }
 
