@@ -3,6 +3,7 @@ name = "liru"
 version = "0.1.6"
 authors = ["Jimmie Elvenmark <flugsio@gmail.com>"]
 repository = "https://github.com/flugsio/liru"
+edition = "2018"
 
 [dependencies]
 log = "0.4.6" # https://github.com/rust-lang-nursery/log/blob/master/CHANGELOG.md
