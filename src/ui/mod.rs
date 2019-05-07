@@ -5,7 +5,7 @@ mod menu_view;
 mod rb_style;
 mod renderer;
 mod view;
-mod ui;
+mod tui;
 
 use crate::ui::game_view::GameView;
 use crate::ui::menu_option::MenuOption;
@@ -15,5 +15,5 @@ use crate::ui::rb_style::RBStyle;
 use crate::ui::renderer::Renderer;
 use crate::ui::view::View;
 
-pub use crate::ui::ui::UI;
+pub use crate::ui::tui::TUI;
 

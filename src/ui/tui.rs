@@ -17,7 +17,7 @@ use super::RBStyle;
 use super::Renderer;
 use super::View;
 
-pub struct UI {
+pub struct TUI {
     running: bool,
     renderer: Renderer,
     views: Vec<Box<dyn View>>,
@@ -25,8 +25,8 @@ pub struct UI {
     session: lila::Session,
 }
 
-impl UI {
-    pub fn new(session: lila::Session) -> UI {
+impl TUI {
+    pub fn new(session: lila::Session) -> TUI {
 
         let rb = match RustBox::init(Default::default()) {
             Result::Ok(v) => v,
@@ -38,7 +38,7 @@ impl UI {
         views.push(Box::new(MenuView::new_tv()));
         views.push(Box::new(MenuView::new_playing(&session.user.nowPlaying)));
 
-        return UI {
+        return TUI {
             running: true,
             renderer: Renderer { rb: rb },
             views: views,

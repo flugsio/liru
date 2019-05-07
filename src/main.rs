@@ -22,8 +22,8 @@ fn main() {
     setup_logger(true);
     debug!("Init");
     let session = setup_session("Press Enter for anonymous");
-    let mut ui = ui::UI::new(session);
-    ui.start();
+    let mut tui = ui::TUI::new(session);
+    tui.start();
     debug!("Exit");
 }
 
