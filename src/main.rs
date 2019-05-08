@@ -15,7 +15,7 @@ mod game;
 mod ui;
 mod lila;
 
-const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 fn main() {
     //setup_logger(matches.is_present("debug"));
