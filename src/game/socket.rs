@@ -8,6 +8,8 @@ use std::sync::{Arc, Mutex};
 
 use std::thread;
 
+use log::{error, warn, debug, trace};
+
 use cookie::CookieJar;
 
 use time;

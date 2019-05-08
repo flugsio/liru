@@ -144,14 +144,14 @@ impl Session {
             }
             let b = core.run(res.into_body().concat2()).unwrap();
             let body = str::from_utf8(&b).unwrap();
-            trace!("{}", &body);
+            log::trace!("{}", &body);
             Ok(Session {
                 user: serde_json::from_str(&body).unwrap(),
                 cookie: Box::new(cookie_jar),
             })
             //} else if res.status.is_client_error() {
         } else {
-            error!("Could not login: {}", res.status());
+            log::error!("Could not login: {}", res.status());
             Err("Could not login")
         }
     }

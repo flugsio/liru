@@ -38,11 +38,11 @@ impl LilaMessage {
             (Some("move"), Some(data)) => serde_json::from_str(&data).map(|d| LilaMessage::Move(d)).ok(),
             (Some("clock"), Some(data)) => serde_json::from_str(&data).map(|d| LilaMessage::Clock(d)).ok(),
             (Some(ref t), ref d) => {
-                warn!("unhandled: {}, {:?}", t, d);
+                log::warn!("unhandled: {}, {:?}", t, d);
                 None
             },
             _ => {
-                warn!("unhandled: Missing type");
+                log::warn!("unhandled: Missing type");
                 None
             }
         }

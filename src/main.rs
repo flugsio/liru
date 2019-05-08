@@ -1,6 +1,4 @@
 #[macro_use]
-extern crate log;
-#[macro_use]
 extern crate serde_derive;
 #[macro_use]
 extern crate serde_json;
@@ -20,11 +18,11 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 fn main() {
     //setup_logger(matches.is_present("debug"));
     setup_logger(true);
-    debug!("Init");
+    log::debug!("Init");
     let session = setup_session("Press Enter for anonymous");
     let mut tui = ui::TUI::new(session);
     tui.start();
-    debug!("Exit");
+    log::debug!("Exit");
 }
 
 /// Recursively asks for valid credentials

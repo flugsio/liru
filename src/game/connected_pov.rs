@@ -24,7 +24,7 @@ pub struct ConnectedPov {
 impl ConnectedPov {
     pub fn new(session: &lila::Session, path: &str) -> ConnectedPov {
         let body = session.get(path);
-        debug!("GET response: {}", body);
+        log::debug!("GET response: {}", body);
         let pov: Pov = serde_json::from_str(&body).unwrap();
         let version = match pov.player.version {
             Some(v) => v as u64,
@@ -39,7 +39,7 @@ impl ConnectedPov {
         let pov_2 = pov_1.clone();
         let c = session.cookie.clone();
         let sri = Uuid::new_v4();
-        debug!("SRI set to {}", sri);
+        log::debug!("SRI set to {}", sri);
         //let new_path = str::replace(path, "/v1", "/v2");
         let url = Session::socket_url(&format!("{}?sri={}&version={}", socket_path, sri, version));
         thread::spawn(move || {
