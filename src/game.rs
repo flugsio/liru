@@ -1,3 +1,5 @@
+use serde_derive::Deserialize;
+
 mod socket;
 mod latency_recorder;
 mod clock;

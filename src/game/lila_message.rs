@@ -1,3 +1,5 @@
+use serde_derive::Deserialize;
+
 use serde_json;
 
 use super::Clock;

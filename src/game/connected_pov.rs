@@ -1,3 +1,5 @@
+use serde_derive::Serialize;
+
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc;
 use std::thread;

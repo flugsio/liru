@@ -1,3 +1,4 @@
+use serde_derive::Deserialize;
 
 use super::Clock;
 use super::Color;

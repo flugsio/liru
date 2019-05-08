@@ -1,3 +1,5 @@
+use serde_derive::Deserialize;
+
 use std::ops::Not;
 
 #[allow(non_camel_case_types)]
