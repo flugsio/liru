@@ -20,4 +20,4 @@ hyper = "0.12.28" # https://github.com/hyperium/hyper/blob/master/CHANGELOG.md
 hyper-tls = "0.3.2"
 tokio-core = "0.1.17"
 url = "1.7.2"
-cookie = "0.10.1"
+cookie = "0.12.0"
