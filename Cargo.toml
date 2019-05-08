@@ -8,16 +8,16 @@ edition = "2018"
 [dependencies]
 log = "0.4.6" # https://github.com/rust-lang-nursery/log/blob/master/CHANGELOG.md
 fern = "0.5.8" # https://github.com/daboross/fern/blob/master/CHANGELOG.md
-uuid = { version = "0.6.5", features = ["v4"] } # https://github.com/uuid-rs/uuid/releases
-ws = { version = "0.7.6", features = ["ssl"] }
+uuid = { version = "0.7.4", features = ["v4"] } # https://github.com/uuid-rs/uuid/releases
+ws = { version = "0.8.0", features = ["ssl"] } # https://github.com/housleyjk/ws-rs/blob/master/CHANGELOG.md
 serde = "1.0.70"
-serde_derive = "1.0.70"
-serde_json = "1.0.24"
+serde_derive = "1.0.91"
+serde_json = "1.0.39"
 rustbox = "0.11.0"
-time = "0.1.40"
-futures = "0.1.23"
-hyper = "0.12.6"
-hyper-tls = "0.3.0"
+time = "0.1.42"
+futures = "0.1.26" # https://github.com/rust-lang-nursery/futures-rs/blob/master/CHANGELOG.md
+hyper = "0.12.28" # https://github.com/hyperium/hyper/blob/master/CHANGELOG.md
+hyper-tls = "0.3.2"
 tokio-core = "0.1.17"
-url = "1.7.1"
+url = "1.7.2"
 cookie = "0.10.1"

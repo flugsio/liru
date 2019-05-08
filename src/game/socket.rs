@@ -1,5 +1,5 @@
 use serde_derive::Serialize;
-use serde_json::{json, json_internal};
+use serde_json::json;
 
 use ws;
 
