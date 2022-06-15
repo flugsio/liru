@@ -3,8 +3,8 @@ use serde_derive::Deserialize;
 use std::str;
 use std::collections::HashMap;
 
-use futures::Stream;
-use hyper::{Body, Request, Client};
+use hyper::{Body, Request};
+use hyper::client::Client;
 use hyper::header::{
     CONTENT_LENGTH,
     ACCEPT,
@@ -13,7 +13,6 @@ use hyper::header::{
     SET_COOKIE,
     USER_AGENT,
 };
-use tokio_core::reactor::Core;
 use hyper_tls::HttpsConnector;
 
 use serde_json;
@@ -119,9 +118,7 @@ impl Session {
     }
 
     pub fn sign_in(username: String, password: String) -> Result<Session, &'static str> {
-        let mut core = Core::new().unwrap();
-        let _handle = core.handle();
-        let https = HttpsConnector::new(4).unwrap();
+        let https = HttpsConnector::new();
         let client = Client::builder()
             .build::<_, Body>(https);
         let mut data = String::new();
@@ -137,14 +134,23 @@ impl Session {
             .header(ACCEPT, "application/vnd.lichess.v1+json")
             .header(CONTENT_TYPE, "application/x-www-form-urlencoded")
             .body(data.into()).unwrap();
-        let res = core.run(client.request(req)).unwrap();
+
+        let res = tokio::runtime::Runtime::new()
+            .unwrap()
+            .block_on(async {
+                client.request(req).await.unwrap()
+            });
         if res.status().is_success() {
             let mut cookie_jar = CookieJar::new();
             for cookie in res.headers().get_all(SET_COOKIE).iter() {
                 let cookie = cookie.to_str().unwrap().to_string();
                 cookie_jar.add_original(Cookie::parse(cookie).unwrap());
             }
-            let b = core.run(res.into_body().concat2()).unwrap();
+            let b = tokio::runtime::Runtime::new()
+                .unwrap()
+                .block_on(async {
+                    hyper::body::to_bytes(res).await.unwrap()
+                });
             let body = str::from_utf8(&b).unwrap();
             log::trace!("{}", &body);
             Ok(Session {
@@ -160,23 +166,25 @@ impl Session {
 
     pub fn get(&self, path: &str) -> String {
         // TODO: catch error and print
-        let mut core = Core::new().unwrap();
-        let _handle = core.handle();
-        let https = HttpsConnector::new(4).unwrap();
+        let https = HttpsConnector::new();
         let client = Client::builder()
             .build::<_, Body>(https);
 
         let mut builder = Request::builder();
-        builder.method("GET")
+        builder = builder.method("GET")
             .uri(&Session::url(path))
             .header(CONNECTION, "close")
             .header(USER_AGENT, format!("liru/{}", crate::VERSION).as_str())
             .header(ACCEPT, "application/vnd.lichess.v1+json");
         for cookie in self.cookie.iter() {
-            builder.header(cookie.name(), cookie.value());
+            builder = builder.header(cookie.name(), cookie.value());
         }
         let req = builder.body(Body::empty()).unwrap();
-        let res = core.run(client.request(req)).unwrap();
-        str::from_utf8(&core.run(res.into_body().concat2()).unwrap()).unwrap().to_string()
+        let res = tokio::runtime::Runtime::new()
+            .unwrap()
+            .block_on(async {
+                hyper::body::to_bytes(client.request(req).await.unwrap()).await.unwrap()
+            });
+        str::from_utf8(&res).unwrap().to_string()
     }
 }
