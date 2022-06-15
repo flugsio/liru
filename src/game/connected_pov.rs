@@ -42,8 +42,8 @@ impl ConnectedPov {
         let c = session.cookie.clone();
         let sri = Uuid::new_v4();
         log::debug!("SRI set to {}", sri);
-        //let new_path = str::replace(path, "/v1", "/v2");
-        let url = Session::socket_url(&format!("{}?sri={}&version={}", socket_path, sri, version));
+        let socket_path = str::replace(&socket_path, "/v1", "/v6");
+        let url = Session::socket_url(&format!("{}?sri={}&v={}", socket_path, sri, version));
         thread::spawn(move || {
             socket::Client::connect(&c, url.clone(), version, game_tx.clone(), send_rx);
         });
@@ -53,6 +53,7 @@ impl ConnectedPov {
         thread::spawn(move || loop {
             let obj = game_rx.recv().unwrap();
             let mut pov = pov_2.lock().unwrap();
+            // log::debug!("{}", &obj);
             match LilaMessage::decode(&obj) {
                 Some(LilaMessage::Pong(p)) => {
                     latency_2.lock().unwrap().add(p.latency);

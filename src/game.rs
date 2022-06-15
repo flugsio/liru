@@ -22,7 +22,7 @@ pub struct Game {
     pub speed: String,
     pub perf: String,
     pub rated: bool,
-    pub initialFen: String,
+    pub initialFen: Option<String>,
     pub fen: String,
     pub player: Color,
     pub turns: u64,
@@ -31,6 +31,7 @@ pub struct Game {
     pub threefold: Option<bool>,
     pub source: String,
     pub status: Status,
+    //createdAt: 1655254531882,
 }
 
 #[derive(Deserialize)]
