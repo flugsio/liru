@@ -6,10 +6,10 @@ use super::Color;
 
 // TODO: ehm, maybe not like this
 // wrap to implement trait on foreign type in this version of rust
-pub struct Time(time::Tm);
+pub struct Time(time::OffsetDateTime);
 impl Time {
     pub fn default() -> Time {
-        Time(time::now_utc())
+        Time(time::OffsetDateTime::now_utc())
     }
 }
 
@@ -31,15 +31,15 @@ impl Clock {
     }
     
     //pub fn update(&mut self, white: f64, black: f64) {
-    //    self.last_update = Time(time::now_utc());
+    //    self.last_update = Time(time::OffsetDateTime::now_utc());
     //    self.white = white;
     //    self.black = black;
     //}
     
     pub fn tick(&mut self, color: Color) {
-        let now = time::now_utc();
+        let now = time::OffsetDateTime::now_utc();
         let Time(updated) = self.last_update;
-        let passed = ((now - updated).num_milliseconds() as f64) / 1000.0;
+        let passed = ((now - updated).whole_milliseconds() as f64) / 1000.0;
         self.last_update = Time(now);
         match color {
             // TODO: only tick when gameIsRunning instead of using max

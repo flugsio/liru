@@ -1,5 +1,6 @@
 use fern;
 use time;
+use time::format_description::well_known::iso8601::Iso8601;
 
 use std::io;
 use std::io::Write;
@@ -53,11 +54,10 @@ fn setup_logger(debug: bool) {
 
     fern::Dispatch::new()
         .format(|out, message, record| {
-            let now = time::now_utc();
+            let now = time::OffsetDateTime::now_utc();
             out.finish(format_args!(
-                    "{}.{}Z [{}] [{}] {}",
-                    now.strftime("%Y-%m-%dT%H:%M:%S").unwrap(),
-                    now.tm_nsec,
+                    "{} [{}] [{}] {}",
+                    now.format(&Iso8601::DEFAULT).unwrap(),
                     record.level(),
                     record.target(),
                     message))

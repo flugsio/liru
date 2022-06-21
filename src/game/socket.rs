@@ -49,7 +49,7 @@ pub struct Client {
     out: Sender,
     version: Rc<Cell<u64>>,
     game_tx: mpsc::Sender<serde_json::Value>,
-    last_ping: time::Tm,
+    last_ping: time::OffsetDateTime,
     cookie: CookieJar,
 }
 
@@ -94,7 +94,7 @@ impl Handler for Client {
         match event {
             PING => {
                 let ping = PingPacket::new(self.version.get()).to_message();
-                self.last_ping = time::now_utc();
+                self.last_ping = time::OffsetDateTime::now_utc();
                 self.out.send(ping)
             }
             _ => Ok(error!("Invalid timeout token encountered!")),
@@ -151,7 +151,7 @@ impl Client {
                 out: out.clone(),
                 version: v.clone(),
                 game_tx: game_tx.clone(),
-                last_ping: time::now_utc(),
+                last_ping: time::OffsetDateTime::now_utc(),
                 cookie: c.clone(),
             }
         }).unwrap();
@@ -176,8 +176,8 @@ impl Client {
         }
     }
 
-    fn milliseconds_since_ping(&self) -> i64 {
-        (time::now_utc() - self.last_ping).num_milliseconds()
+    fn milliseconds_since_ping(&self) -> i128 {
+        (time::OffsetDateTime::now_utc() - self.last_ping).whole_milliseconds()
     }
 }
 
