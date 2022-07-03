@@ -8,7 +8,7 @@ edition = "2018"
 [dependencies]
 log = "0.4.6" # https://github.com/rust-lang-nursery/log/blob/master/CHANGELOG.md
 fern = "0.6.1" # https://github.com/daboross/fern/blob/master/CHANGELOG.md
-uuid = { version = "0.6.5", features = ["v4"] } # https://github.com/uuid-rs/uuid/releases
+uuid = { version = "1.1.2", features = ["v4"] } # https://github.com/uuid-rs/uuid/releases
 ws = { version = "0.9.2", features = ["ssl"] }
 serde = "1.0.70"
 serde_derive = "1.0.70"
@@ -20,5 +20,5 @@ hyper = { version = "0.14.19", features = ["client", "http1"] }
 hyper-tls = "0.5.0"
 tokio = { version = "1.19.2", features = ["full"] }
 url = "2.2.2"
-cookie = "0.10.1"
+cookie = "0.16.0"
 openssl = { version = "0.10", features = ["vendored"] }
