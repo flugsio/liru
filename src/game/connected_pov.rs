@@ -62,6 +62,8 @@ impl ConnectedPov {
                     pov.game.fen = m.fen;
                     pov.game.turns = m.ply;
                     pov.game.player = if m.ply % 2 == 0 { Color::white } else { Color::black };
+                    pov.game.lastMove = Some(m.uci);
+                    pov.game.lastMoveSan = Some(m.san);
                     if let Some(c) = m.clock {
                         pov.clock = Some(c);
                     };

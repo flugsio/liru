@@ -30,6 +30,7 @@ pub struct Game {
     pub turns: u64,
     pub startedAtTurn: i64,
     pub lastMove: Option<String>,
+    pub lastMoveSan: Option<String>,
     pub threefold: Option<bool>,
     pub source: String,
     pub status: Status,

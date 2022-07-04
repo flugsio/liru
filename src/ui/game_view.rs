@@ -53,7 +53,7 @@ impl GameView {
             self.render_player(r, x + 1, y + 14, &pov.player, true);
         }
         let fen = pov.game.fen.clone();
-        self.render_fen(r, x, y, fen, pov.orientation() == game::Color::white);
+        self.render_fen(r, x, y, fen, pov.orientation() == game::Color::white, &pov.game);
         match pov.clock {
             Some(ref clock) => {
                 self.render_clock(r, x + 19, y + 3, clock.from(!pov.orientation()));
@@ -65,6 +65,7 @@ impl GameView {
             let style = RBStyle { style: RB_BOLD, fg: Color::White, bg: Color::Black };
             r.print(5, 16, style, &format!("Move {}▍          ", self.input.iter().cloned().collect::<String>()));
         }
+        self.render_last_move(r, x + 26, y + 12, &pov.game);
     }
 
     pub fn render_player(&self, r: &mut Renderer, x: usize, y: usize, player: &game::Player, present: bool) {
@@ -93,17 +94,40 @@ impl GameView {
 
     }
 
+    pub fn render_last_move(&self, r: &mut Renderer, x: usize, y: usize, game: &game::Game) {
+        let color = if game.player == game::Color::black {
+            RBStyle { style: RB_NORMAL, fg: Color::Yellow, bg: Color::Black }
+        } else {
+            RBStyle { style: RB_BOLD, fg: Color::Blue, bg: Color::Black }
+        };
+        r.print(x, y, color, &format!("{}           ", game.lastMoveSan.as_ref().unwrap_or(&"".to_string())));
+    }
+
     pub fn render_clock(&self, r: &mut Renderer, x: usize, y: usize, time: f64) {
         r.print(x, y, RBStyle { style: RB_BOLD, fg: if time < 10f64 { Color::Red } else { Color::White }, bg: Color::Black }, &format!("{:04.1}", time));
     }
 
-    pub fn render_fen(&self, r: &mut Renderer, x: usize, y: usize, fen: String, orientation: bool) {
+    fn highlighed(san: &Option<String>, x: usize, y: usize) -> bool {
+        if let Some(san) = san {
+            let san = san
+                .replace("a", "1")
+                .replace("b", "2")
+                .replace("c", "3")
+                .replace("d", "4")
+                .replace("e", "5")
+                .replace("f", "6")
+                .replace("g", "7")
+                .replace("h", "8");
+            if san[0..2] == format!("{}{}", x, y) || san[2..4] == format!("{}{}", x, y) {
+                return true;
+            }
+        }
+        false
+    }
+
+    pub fn render_fen(&self, r: &mut Renderer, x: usize, y: usize, fen: String, orientation: bool, game: &game::Game) {
         let _text_style  = RBStyle { style: RB_BOLD, fg: Color::White, bg:    Color::Black };
         let border      = RBStyle { style: RB_NORMAL, fg: Color::Cyan, bg:   Color::Black };
-        let piece_dark  = RBStyle { style: RB_BOLD, fg: Color::Blue, bg:     Color::Black };
-        let piece_light = RBStyle { style: RB_NORMAL, fg: Color::Yellow, bg: Color::Black };
-        let space_dark  = RBStyle { style: RB_BOLD, fg: Color::Blue, bg:     Color::Black };
-        let space_light = RBStyle { style: RB_NORMAL, fg: Color::Yellow, bg: Color::Black };
 
         //r.print(x + 3, y +  1, text_style, &fen);
         r.print(x + 5, y +  3, border, "╔═════════════════╗");
@@ -140,17 +164,27 @@ impl GameView {
             }
             r.print(x + 23, 4 + y + y2, border, "║");
             for (x2, char) in row.chars().enumerate() {
+                let (san_x, san_y) = if orientation {
+                    (x2 + 1, 9 - (y2 + 1))
+                } else {
+                    (9 - (x2 + 1), y2 + 1)
+                };
+                let bg = if Self::highlighed(&game.lastMove, san_x, san_y) {
+                    Color::Magenta
+                } else {
+                    Color::Black
+                };
                 let color = if char == '·' {
                     if (y2 + x2) % 2 == 0 {
-                        space_light
+                        RBStyle { style: RB_NORMAL, fg: Color::Yellow, bg: bg }
                     } else {
-                        space_dark
+                        RBStyle { style: RB_BOLD, fg: Color::Blue, bg: bg }
                     }
                 } else {
                     if char.is_uppercase() {
-                        piece_light
+                        RBStyle { style: RB_NORMAL, fg: Color::Yellow, bg: bg }
                     } else {
-                        piece_dark
+                        RBStyle { style: RB_BOLD, fg: Color::Blue, bg: bg }
                     }
                 };
                 r.print(7 + x + x2*2, 4 + y + y2, color, &char.to_uppercase().collect::<String>());
