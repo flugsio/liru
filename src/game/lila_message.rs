@@ -3,11 +3,13 @@ use serde_derive::Deserialize;
 use serde_json;
 
 use super::Clock;
+use super::Crowd;
 
 pub enum LilaMessage {
     Pong(Pong),
     Move(Move),
     Clock(Clock),
+    Crowd(Crowd),
 }
 
 #[derive(Deserialize, Debug)]
@@ -39,6 +41,7 @@ impl LilaMessage {
             (Some("n"), Some(data)) => serde_json::from_str(&data).map(|d| LilaMessage::Pong(d)).ok(),
             (Some("move"), Some(data)) => serde_json::from_str(&data).map(|d| LilaMessage::Move(d)).ok(),
             (Some("clock"), Some(data)) => serde_json::from_str(&data).map(|d| LilaMessage::Clock(d)).ok(),
+            (Some("crowd"), Some(data)) => serde_json::from_str(&data).map(|d| LilaMessage::Crowd(d)).ok(),
             (Some(ref t), ref d) => {
                 log::warn!("unhandled: {}, {:?}", t, d);
                 None

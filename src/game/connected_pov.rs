@@ -69,6 +69,9 @@ impl ConnectedPov {
                 Some(LilaMessage::Clock(c)) => {
                     pov.clock = Some(c);
                 },
+                Some(LilaMessage::Crowd(c)) => {
+                    pov.crowd = Some(c);
+                },
                 //LilaMessage::End => tx_1.send(Message::close()).unwrap(),
                 _ => ()
             };

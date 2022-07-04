@@ -1,6 +1,7 @@
 use serde_derive::Deserialize;
 
 use super::Clock;
+use super::Crowd;
 use super::Color;
 use super::Game;
 
@@ -8,6 +9,7 @@ use super::Game;
 pub struct Pov {
     pub game: Game,
     pub clock: Option<Clock>,
+    pub crowd: Option<Crowd>,
     pub correspondence: Option<CorrespondenceClock>,
     pub url: GameUrl,
     pub player: Player,

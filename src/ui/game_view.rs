@@ -42,8 +42,16 @@ impl GameView {
     }
 
     pub fn render_pov(&self, r: &mut Renderer, x: usize, y: usize, pov: &game::Pov) {
-        self.render_player(r, x + 1, y + 2, &pov.opponent);
-        self.render_player(r, x + 1, y + 14, &pov.player);
+        if let Some(crowd) = &pov.crowd {
+            let opponent_present = crowd.opponent_from(pov.orientation());
+            let player_present = crowd.player_from(pov.orientation());
+            self.render_player(r, x + 1, y + 2, &pov.opponent, opponent_present);
+            self.render_player(r, x + 1, y + 14, &pov.player, player_present);
+            self.render_watchers(r, x + 1, y + 18, &crowd);
+        } else {
+            self.render_player(r, x + 1, y + 2, &pov.opponent, true);
+            self.render_player(r, x + 1, y + 14, &pov.player, true);
+        }
         let fen = pov.game.fen.clone();
         self.render_fen(r, x, y, fen, pov.orientation() == game::Color::white);
         match pov.clock {
@@ -59,15 +67,30 @@ impl GameView {
         }
     }
 
-    pub fn render_player(&self, r: &mut Renderer, x: usize, y: usize, player: &game::Player) {
+    pub fn render_player(&self, r: &mut Renderer, x: usize, y: usize, player: &game::Player, present: bool) {
         let style = RBStyle { style: RB_BOLD, fg: Color::White, bg: Color::Black };
+        let style_absent = RBStyle { style: RB_BOLD, fg: Color::Red, bg: Color::Black };
         r.print(x, y, style, &format!("{:4}", player.rating.unwrap_or(1500)));
         match player.user {
             Some(ref user) => {
-                r.print(x + 5, y, style, &format!("{}", user.username));
+                r.print(x + 5, y,  if present { style } else { style_absent }, &format!("{}", user.username));
             },
             None => ()
         };
+    }
+
+    pub fn render_watchers(&self, r: &mut Renderer, x: usize, y: usize, crowd: &game::Crowd) {
+        let style = RBStyle { style: RB_BOLD, fg: Color::White, bg: Color::Black };
+        r.print(x, y, style, &format!("Watchers: {:4}", crowd.watchers.nb));
+        if let Some(anons) = &crowd.watchers.anons {
+            r.print(x, y + 1, style, &format!("Anonymous: {:3}", anons));
+        }
+        if let Some(users) = &crowd.watchers.users {
+            for (i, user) in users.iter().enumerate() {
+                r.print(x, y + 2 + i, style, &format!("{}", user));
+            }
+        }
+
     }
 
     pub fn render_clock(&self, r: &mut Renderer, x: usize, y: usize, time: f64) {

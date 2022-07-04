@@ -5,6 +5,7 @@ mod latency_recorder;
 mod clock;
 mod connected_pov;
 mod color;
+mod crowd;
 mod lila_message;
 mod pov;
 
@@ -13,6 +14,7 @@ pub use crate::game::connected_pov::ConnectedPov;
 pub use crate::game::color::Color;
 pub use crate::game::pov::{Pov,Player};
 use crate::game::clock::Clock;
+pub use crate::game::crowd::Crowd;
 
 #[allow(non_snake_case)]
 #[derive(Deserialize)]
