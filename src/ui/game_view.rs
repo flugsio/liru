@@ -100,16 +100,16 @@ impl GameView {
         } else {
             RBStyle { style: RB_BOLD, fg: Color::Blue, bg: Color::Black }
         };
-        r.print(x, y, color, &format!("{}           ", game.lastMoveSan.as_ref().unwrap_or(&"".to_string())));
+        r.print(x, y, color, &format!("{}           ", game.lastMoveSan.as_ref().or(game.lastMove.as_ref()).unwrap_or(&"".to_string())));
     }
 
     pub fn render_clock(&self, r: &mut Renderer, x: usize, y: usize, time: f64) {
         r.print(x, y, RBStyle { style: RB_BOLD, fg: if time < 10f64 { Color::Red } else { Color::White }, bg: Color::Black }, &format!("{:04.1}", time));
     }
 
-    fn highlighed(san: &Option<String>, x: usize, y: usize) -> bool {
-        if let Some(san) = san {
-            let san = san
+    fn highlighed(uci: &Option<String>, x: usize, y: usize) -> bool {
+        if let Some(uci) = uci {
+            let uci = uci
                 .replace("a", "1")
                 .replace("b", "2")
                 .replace("c", "3")
@@ -118,7 +118,7 @@ impl GameView {
                 .replace("f", "6")
                 .replace("g", "7")
                 .replace("h", "8");
-            if san[0..2] == format!("{}{}", x, y) || san[2..4] == format!("{}{}", x, y) {
+            if uci[0..2] == format!("{}{}", x, y) || uci[2..4] == format!("{}{}", x, y) {
                 return true;
             }
         }
@@ -164,12 +164,12 @@ impl GameView {
             }
             r.print(x + 23, 4 + y + y2, border, "║");
             for (x2, char) in row.chars().enumerate() {
-                let (san_x, san_y) = if orientation {
+                let (uci_x, uci_y) = if orientation {
                     (x2 + 1, 9 - (y2 + 1))
                 } else {
                     (9 - (x2 + 1), y2 + 1)
                 };
-                let bg = if Self::highlighed(&game.lastMove, san_x, san_y) {
+                let bg = if Self::highlighed(&game.lastMove, uci_x, uci_y) {
                     Color::Magenta
                 } else {
                     Color::Black
