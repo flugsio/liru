@@ -20,5 +20,5 @@ hyper = { version = "0.14.19", features = ["client", "http1"] }
 hyper-tls = "0.5.0"
 tokio = { version = "1.19.2", features = ["full"] }
 url = "2.2.2"
-cookie = "0.16.0"
+cookie = "0.17.0"
 openssl = { version = "0.10", features = ["vendored"] }
