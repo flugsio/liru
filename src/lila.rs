@@ -3,7 +3,7 @@ use serde_derive::Deserialize;
 use std::str;
 use std::collections::HashMap;
 
-use futures::Stream;
+// use futures::Stream;
 use hyper::{Body, Request, Client};
 use hyper::header::{
     CONTENT_LENGTH,
@@ -13,8 +13,9 @@ use hyper::header::{
     SET_COOKIE,
     USER_AGENT,
 };
-use tokio_core::reactor::Core;
+// use tokio_core::reactor::Core;
 use hyper_tls::HttpsConnector;
+use hyper::rt::{self, Future, Stream};
 
 use serde_json;
 use url::form_urlencoded;
@@ -119,11 +120,7 @@ impl Session {
     }
 
     pub fn sign_in(username: String, password: String) -> Result<Session, &'static str> {
-        let mut core = Core::new().unwrap();
-        let _handle = core.handle();
         let https = HttpsConnector::new(4).unwrap();
-        let client = Client::builder()
-            .build::<_, Body>(https);
         let mut data = String::new();
         form_urlencoded::Serializer::new(&mut data)
             .append_pair("username", &username)
@@ -137,31 +134,35 @@ impl Session {
             .header(ACCEPT, "application/vnd.lichess.v1+json")
             .header(CONTENT_TYPE, "application/x-www-form-urlencoded")
             .body(data.into()).unwrap();
-        let res = core.run(client.request(req)).unwrap();
-        if res.status().is_success() {
-            let mut cookie_jar = CookieJar::new();
-            for cookie in res.headers().get_all(SET_COOKIE).iter() {
-                let cookie = cookie.to_str().unwrap().to_string();
-                cookie_jar.add_original(Cookie::parse(cookie).unwrap());
-            }
-            let b = core.run(res.into_body().concat2()).unwrap();
-            let body = str::from_utf8(&b).unwrap();
-            log::trace!("{}", &body);
-            Ok(Session {
-                user: serde_json::from_str(&body).unwrap(),
-                cookie: Box::new(cookie_jar),
-            })
-            //} else if res.status.is_client_error() {
-        } else {
-            log::error!("Could not login: {}", res.status());
-            Err("Could not login")
-        }
+        rt::run(rt::lazy(|| {
+            let client = Client::builder()
+                .build::<_, Body>(https);
+            client.request(req)
+                .map(|res| {
+                    // if res.status().is_success() {
+                    let mut cookie_jar = CookieJar::new();
+                    for cookie in res.headers().get_all(SET_COOKIE).iter() {
+                        let cookie = cookie.to_str().unwrap().to_string();
+                        cookie_jar.add_original(Cookie::parse(cookie).unwrap());
+                    }
+                    let b = core.run(res.into_body().concat2()).unwrap();
+                    let body = str::from_utf8(&b).unwrap();
+                    log::trace!("{}", &body);
+                    Ok(Session {
+                        user: serde_json::from_str(&body).unwrap(),
+                        cookie: Box::new(cookie_jar),
+                    })
+                    //} else if res.status.is_client_error() {
+                })
+                .map_err(|err| {
+                    // log::error!("Could not login: {}", res.status());
+                    Err("Could not login")
+                })
+                }))
     }
 
     pub fn get(&self, path: &str) -> String {
         // TODO: catch error and print
-        let mut core = Core::new().unwrap();
-        let _handle = core.handle();
         let https = HttpsConnector::new(4).unwrap();
         let client = Client::builder()
             .build::<_, Body>(https);

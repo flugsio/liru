@@ -18,6 +18,6 @@ time = "0.1.42"
 futures = "0.1.26" # https://github.com/rust-lang-nursery/futures-rs/blob/master/CHANGELOG.md
 hyper = "0.12.28" # https://github.com/hyperium/hyper/blob/master/CHANGELOG.md
 hyper-tls = "0.3.2"
-tokio-core = "0.1.17"
+tokio = "0.1.19" # https://github.com/tokio-rs/tokio/blob/master/tokio/CHANGELOG.md
 url = "1.7.2"
 cookie = "0.12.0"
